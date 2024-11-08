@@ -17,7 +17,7 @@ import {
     FileText,
     LineChart, LucidePlus
 } from 'lucide-react';
-import ApplicationLogo from '@/Components/ApplicationLogo';
+import ApplicationLogo from '@/components/ApplicationLogo';
 import {
     Sidebar,
     SidebarContent,

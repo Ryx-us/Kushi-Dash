@@ -1,10 +1,10 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
+import InputError from '@/components/InputError';
+import InputLabel from '@/components/InputLabel';
+import PrimaryButton from '@/components/PrimaryButton';
+import TextInput from '@/components/TextInput';
 import { useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
-import SuccessModal from '@/Components/SuccessModal';
+import SuccessModal from '@/components/SuccessModal';
 
 export default function PasswordResetFormPterodactyl({ className = '' }) {
     const user = usePage().props.auth.user;

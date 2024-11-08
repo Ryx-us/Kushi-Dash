@@ -18,7 +18,7 @@ import {
     Box,
     HelpCircle, LucideServer, LucideLock, LucideMonitorUp, Coins, Crown
 } from 'lucide-react'
-import ApplicationLogo from '@/Components/ApplicationLogo'
+import ApplicationLogo from '@/components/ApplicationLogo'
 import {
     Sidebar,
     SidebarContent,

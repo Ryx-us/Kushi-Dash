@@ -6,7 +6,7 @@ import axios from 'axios'
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Pencil, ExternalLink, Trash2 } from "lucide-react"
-import {Skeleton} from "@/Components/ui/skeleton.jsx";
+import {Skeleton} from "@/components/ui/skeleton.jsx";
 
 export default function Component({ className = '' }) {
     const user = usePage().props.auth.user
