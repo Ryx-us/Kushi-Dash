@@ -1,7 +1,7 @@
 import React from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import AdminAuthLayer from "@/Layouts/AdminAuthLayer.jsx";
-import Footer from "@/Components/Footer.jsx";
+import Footer from "@/components/Footer.jsx";
 
 import UserEditForm from "@/Pages/Admin/UserEdit.jsx";
 

@@ -4,7 +4,7 @@ import { Head } from '@inertiajs/react';
 import FlashbackTester from "@/Pages/Dashboard/flashbacktester.jsx";
 import ServerDisplay from "@/Pages/Dashboard/DisplayServer.jsx";
 import AdminAuthLayer from "@/Layouts/AdminAuthLayer.jsx";
-import Footer from "@/Components/Footer.jsx";
+import Footer from "@/components/Footer.jsx";
 import EggForm from "@/Pages/Admin/PterodactylEggs.jsx";
 import EggsView from "@/Pages/Admin/EggsView.jsx";
 

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import AdminAuthLayer from "@/Layouts/AdminAuthLayer.jsx";
-import Footer from "@/Components/Footer.jsx";
+import Footer from "@/components/Footer.jsx";
 import EggEditForm from "@/Pages/Admin/EggEditForm.jsx";
 import AuditLogComp from "@/Pages/Admin/AuditLog.jsx";
 import InitialResources from "@/Pages/Admin/DefaultRes.jsx";
