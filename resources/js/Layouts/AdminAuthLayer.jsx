@@ -15,7 +15,13 @@ import {
     ScrollText,
     Wallet,
     FileText,
-    LineChart, LucidePlus
+    LineChart, LucidePlus,
+    LucideGlobe2,
+    LucideAArrowUp,
+    LucideDownloadCloud,
+    LucideDollarSign,
+    LucideBadgeDollarSign,
+    LucideCircleDollarSign
 } from 'lucide-react';
 import ApplicationLogo from '@/components/ApplicationLogo';
 import {
@@ -177,7 +183,7 @@ export default function AdminAuthLayer({ header, children, sidebartab }) {
 
                                     {auth.user.rank === 'admin' && (
                                         <>
-                                            <MenuSection title="Server Software">
+                                            <MenuSection title="Server Software & Locations">
                                                 <MenuItem
                                                     icon={LucideEgg}
                                                     label="Server Software"
@@ -190,6 +196,18 @@ export default function AdminAuthLayer({ header, children, sidebartab }) {
                                                     href="/admin/eggs/new"
                                                     isActive={sidebartab === 'newegg'}
                                                 />
+                                                <MenuItem
+                                                    icon={LucideGlobe2}
+                                                    label="Locations"
+                                                    href="/admin/locations"
+                                                    isActive={sidebartab === 'location'}
+                                                />
+                                                 <MenuItem
+                                                    icon={LucideDownloadCloud}
+                                                    label="New Locations"
+                                                    href="/admin/locations/new"
+                                                    isActive={sidebartab === 'newlocation'}
+                                                />
                                             </MenuSection>
                                             <MenuSection title="Plans & Users">
                                                 <MenuItem
@@ -197,6 +215,18 @@ export default function AdminAuthLayer({ header, children, sidebartab }) {
                                                     label="User Management"
                                                     href="/admin/users"
                                                     isActive={sidebartab === 'users'}
+                                                />
+                                                <MenuItem
+                                                    icon={LucideDollarSign}
+                                                    label="Plan Mangement"
+                                                    href="/admin/plans"
+                                                    isActive={sidebartab === 'plans'}
+                                                />
+                                                 <MenuItem
+                                                    icon={LucideCircleDollarSign}
+                                                    label="New plan"
+                                                    href="/admin/plans/new"
+                                                    isActive={sidebartab === 'newplan'}
                                                 />
                                                 <MenuItem
                                                     icon={Settings}

@@ -11,33 +11,39 @@ use Illuminate\Support\Facades\Log;
 class DefaultResources extends Controller
 {
     public function show()
-    {
-        $envPath = base_path('.env');
-        $envContent = file_get_contents($envPath);
+{
+    $envPath = base_path('.env');
+    $envContent = file_get_contents($envPath);
 
-        $resources = [];
-        foreach (explode("\n", $envContent) as $line) {
-            if (preg_match('/^INITIAL_(CPU|MEMORY|DISK|SERVERS|DATABASES|BACKUPS|ALLOCATIONS)=/', $line)) {
-                list($key, $value) = explode('=', $line, 2);
-                $resources[$key] = $value;
-            }
+    $resources = [];
+    foreach (explode("\n", $envContent) as $line) {
+        if (preg_match('/^INITIAL_(CPU|MEMORY|DISK|SERVERS|DATABASES|BACKUPS|ALLOCATIONS)=/', $line)) {
+            list($key, $value) = explode('=', $line, 2);
+            $resources[$key] = $value;
         }
-        $pterodactylSettings = [
-                   'PTERODACTYL_API_URL' => env('PTERODACTYL_API_URL'),
-                   'PTERODACTYL_API_KEY' => env('PTERODACTYL_API_KEY'),
-               ];
-
-       Log::info('Pterodactyl Settings:', $pterodactylSettings);
-
-
-
-
-
-        return Inertia::render('AdminAppSettings', [
-                'resources' => $resources,
-                'pterodactylSettings' => $pterodactylSettings,
-            ]);
     }
+
+    $pterodactylSettings = [
+        'PTERODACTYL_API_URL' => env('PTERODACTYL_API_URL'),
+        'PTERODACTYL_API_KEY' => env('PTERODACTYL_API_KEY'),
+    ];
+
+    $discordSettings = [
+        'DISCORD_CLIENT_ID' => env('DISCORD_CLIENT_ID'),
+        'DISCORD_CLIENT_SECRET' => env('DISCORD_CLIENT_SECRET'),
+        'DISCORD_REDIRECT_URI' => env('DISCORD_REDIRECT_URI'),
+        'DISCORD_SERVER_ID' => env('DISCORD_SERVER_ID'),
+        'DISCORD_BOT_TOKEN' => env('DISCORD_BOT_TOKEN'),
+    ];
+
+    Log::info('Settings loaded:', ['pterodactyl' => $pterodactylSettings, 'discord' => $discordSettings]);
+
+    return Inertia::render('AdminAppSettings', [
+        'resources' => $resources,
+        'pterodactylSettings' => $pterodactylSettings,
+        'discordSettings' => $discordSettings,
+    ]);
+}
 
     public function updateResources(Request $request)
     {
@@ -71,7 +77,7 @@ class DefaultResources extends Controller
 
         file_put_contents($envPath, $envContent);
 
-        return back()->with('status', 'success');
+        return back()->with('status', 'success resources');
     }
 
     private function setEnvValue($envContent, $key, $value)

@@ -1,47 +1,37 @@
-//AdminAppSettings.jsx
 import React from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import AdminAuthLayer from "@/Layouts/AdminAuthLayer.jsx";
 import Footer from "@/components/Footer.jsx";
 import EggEditForm from "@/Pages/Admin/EggEditForm.jsx";
-import AuditLogComp from "@/Pages/Admin/AuditLog.jsx";
-import InitialResources from "@/Pages/Admin/DefaultRes.jsx";
-import UpdatePterodactylSettings from "@/Pages/Admin/PterodactylSettings.jsx";
-import UpdateDiscordSettings from './Admin/DiscordSettings';
+import FlashbackTester from "@/Pages/Dashboard/flashbacktester.jsx";
+import UsersView from "@/Pages/Admin/UsersView.jsx";
+import PlanForm from './Admin/PlansCreate';
 
-export default function AdminAppSettings() {
+export default function AdminPlans() {
     const { egg } = usePage().props;
 
     return (
         <AdminAuthLayer
             header={
                 <h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-                    Admin / Settings
+                    Admin / Users
                 </h2>
             }
-            sidebartab="settings"
+            sidebartab="users"
         >
-            <Head title="Edit Egg"/>
+            <Head title="Admin Users"/>
 
             <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-black">
                 <div className="text-gray-900 dark:text-gray-100">
-                    <h3 className="text-lg font-medium">Instance Settings</h3>
+                    <h3 className="text-lg font-medium">All Users found</h3>
                 </div>
             </div>
 
             <div className="mt-6">
-                <InitialResources/>
-            </div>
-            <div className="mt-6">
-                <UpdatePterodactylSettings/>
-            </div>
-            <div className="mt-6">
-                <UpdateDiscordSettings/>
+                <PlanForm/>
             </div>
 
             <Footer/>
         </AdminAuthLayer>
     );
 }
-
-

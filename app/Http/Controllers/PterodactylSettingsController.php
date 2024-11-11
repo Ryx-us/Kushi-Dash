@@ -45,10 +45,9 @@ class PterodactylSettingsController extends Controller
 
         file_put_contents($envPath, $envContent);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Settings updated successfully',
-        ], 200);
+        return back()->with(['status' => 'success']);
+
+        
     }
 
     private function setEnvValue($envContent, $key, $value)

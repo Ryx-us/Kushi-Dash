@@ -76,26 +76,46 @@ class PterodactylEggController extends Controller
         return response()->json($egg);
     }
 
-   public function audit()
-          {
-              return Inertia::render('AdminAuditLog');
-          }
+    public function audit()
+    {
+        return Inertia::render('AdminAuditLog');
+    }
 
-   public function serversshow($EggID)
-       {
-           $egg = PterodactylEggs::where('EggID', $EggID)->first();
+    public function serversshow($EggID)
+    {
+        $egg = PterodactylEggs::where('EggID', $EggID)->first();
 
-           if (!$egg) {
-               return response()->json(['error' => 'Kushi Engine 404'], 404);
-           }
+        if (!$egg) {
+            return response()->json(['error' => 'Kushi Engine 404'], 404);
+        }
 
-           return response()->json($egg);
-       }
+        return response()->json($egg);
+    }
 
     public function destroy(PterodactylEggs $egg)
     {
-        $egg->delete();
-        return redirect()->route('admin.eggs.index')->with('status', 'Egg deleted successfully.');
+        Log::info('Received request to delete egg:', ['egg' => $egg]);
+
+        try {
+            $egg->delete();
+            Log::info('Egg deleted successfully:', ['egg' => $egg]);
+            return Inertia::render('AdminAppSettings', [
+                'status' => 'success',
+                'message' => 'Egg deleted successfully.',
+                'resources' => [], // Add your resources here
+                'pterodactylSettings' => [], // Add your pterodactyl settings here
+                'discordSettings' => [] // Add your discord settings here
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to delete egg:', ['error' => $e->getMessage()]);
+            return Inertia::render('AdminAppSettings', [
+                'status' => 'error',
+                'message' => 'Failed to delete egg.',
+                'resources' => [], // Add your resources here
+                'pterodactylSettings' => [], // Add your pterodactyl settings here
+                'discordSettings' => [] // Add your discord settings here
+            ]);
+        }
     }
 
     public function getAllEggs()

@@ -8,15 +8,15 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::table('pterodactyl_eggs', function (Blueprint $table) {
-            $table->string('imageUrl')->nullable()->after('EggID');
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('icon')->nullable()->after('name');
         });
     }
 
     public function down()
     {
-        Schema::table('pterodactyl_eggs', function (Blueprint $table) {
-            $table->dropColumn('imageUrl');
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('icon');
         });
     }
 };

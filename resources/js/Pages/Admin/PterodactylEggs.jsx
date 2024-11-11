@@ -59,7 +59,7 @@ const EggForm = ({ egg = {} }) => {
 
         try {
             if (egg.id) {
-                await put(`/admin/eggs/${egg.id}`);
+                await put(`/admin/eggs/${egg.id}`); // add the delte thing aND ETC YOU j
             } else {
                 await post('/admin/eggs/store');
             }

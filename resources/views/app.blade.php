@@ -2,7 +2,7 @@
 <!-- Copyright, Nadhi.dev -->
 <!-- If this instance is running on something shady, Please notify -->
 <!-- Huge thanks to Shadow's dash for the inspiration -->
-<!--Please note Nadhi.dev is not responsible for anything done via an instance as an instance is provided to an Coustmer, All coustmer details will be present below-->
+<!--Please note Nadhi.dev is not responsible for anything done via an instance as an instance is provided to an Entity, All coustmer details will be present below-->
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">

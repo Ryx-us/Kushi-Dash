@@ -1,3 +1,4 @@
+// resources/js/Pages/UpdateDiscordSettings.jsx
 import React, { useEffect, useState } from 'react';
 import { useForm, usePage } from '@inertiajs/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,18 +9,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
-export default function InitialResources() {
+export default function UpdateDiscordSettings() {
     const { props } = usePage();
-    const { resources } = props;
+    const { discordSettings = {} } = props;
 
     const { data, setData, post, processing, errors, reset } = useForm({
-        INITIAL_CPU: resources.INITIAL_CPU || '',
-        INITIAL_MEMORY: resources.INITIAL_MEMORY || '',
-        INITIAL_DISK: resources.INITIAL_DISK || '',
-        INITIAL_SERVERS: resources.INITIAL_SERVERS || '',
-        INITIAL_DATABASES: resources.INITIAL_DATABASES || '',
-        INITIAL_BACKUPS: resources.INITIAL_BACKUPS || '',
-        INITIAL_ALLOCATIONS: resources.INITIAL_ALLOCATIONS || '',
+        DISCORD_CLIENT_ID: discordSettings.DISCORD_CLIENT_ID || '',
+        DISCORD_CLIENT_SECRET: discordSettings.DISCORD_CLIENT_SECRET || '',
+        DISCORD_REDIRECT_URI: discordSettings.DISCORD_REDIRECT_URI || '',
+        DISCORD_SERVER_ID: discordSettings.DISCORD_SERVER_ID || '',
+        DISCORD_BOT_TOKEN: discordSettings.DISCORD_BOT_TOKEN || '',
     });
 
     const { flash } = usePage().props;
@@ -28,23 +27,16 @@ export default function InitialResources() {
 
     useEffect(() => {
         if (flash.status) {
-            setFlashMessage({ message: flash.res, type: flash.status });
-            if (flash.status === 'success resources') {
+            setFlashMessage({ message: flash.message, type: flash.status });
+            if (flash.status === 'success discord') {
                 setShowSuccessDialog(true);
-            } else {
-                const timer = setTimeout(() => setFlashMessage(null), 5000);
-                return () => clearTimeout(timer);
             }
         }
     }, [flash]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        try {
-            await post(`/admin/api/ups`);
-        } catch (error) {
-            console.error('An error occurred while submitting the form.');
-        }
+        post('/admin/api/update-discord-settings');
     };
 
     const handleSuccessClose = () => {
@@ -60,7 +52,7 @@ export default function InitialResources() {
                 type={type}
                 value={value}
                 onChange={(e) => setData(field, e.target.value)}
-                placeholder={`Enter ${label.toLowerCase()}`}
+                placeholder={`Enter ${label}`}
                 className={errors[field] ? 'border-red-500' : ''}
             />
             {errors[field] && <p className="text-xs text-red-500">{errors[field]}</p>}
@@ -71,8 +63,8 @@ export default function InitialResources() {
         <>
             <Card className="w-full max-w-4xl mx-auto">
                 <CardHeader>
-                    <CardTitle>Update Initial Resources</CardTitle>
-                    <CardDescription>Update the initial resources for the system</CardDescription>
+                    <CardTitle>Update Discord Settings</CardTitle>
+                    <CardDescription>Configure your Discord integration settings</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {flashMessage && flashMessage.type !== 'success' && (
@@ -82,24 +74,23 @@ export default function InitialResources() {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid grid-cols-2 gap-6">
-                            {renderInputField('INITIAL_CPU', 'CPU', data.INITIAL_CPU, 'number')}
-                            {renderInputField('INITIAL_MEMORY', 'Memory', data.INITIAL_MEMORY, 'number')}
-                            {renderInputField('INITIAL_DISK', 'Disk', data.INITIAL_DISK, 'number')}
-                            {renderInputField('INITIAL_SERVERS', 'Servers', data.INITIAL_SERVERS, 'number')}
-                            {renderInputField('INITIAL_DATABASES', 'Databases', data.INITIAL_DATABASES, 'number')}
-                            {renderInputField('INITIAL_BACKUPS', 'Backups', data.INITIAL_BACKUPS, 'number')}
-                            {renderInputField('INITIAL_ALLOCATIONS', 'Allocations', data.INITIAL_ALLOCATIONS, 'number')}
+                        <div className="grid grid-cols-1 gap-6">
+                            {renderInputField('DISCORD_CLIENT_ID', 'Client ID', data.DISCORD_CLIENT_ID)}
+                            {renderInputField('DISCORD_CLIENT_SECRET', 'Client Secret', data.DISCORD_CLIENT_SECRET)}
+                            {renderInputField('DISCORD_REDIRECT_URI', 'Redirect URI', data.DISCORD_REDIRECT_URI, 'url')}
+                            {renderInputField('DISCORD_SERVER_ID', 'Server ID', data.DISCORD_SERVER_ID)}
+                            {renderInputField('DISCORD_BOT_TOKEN', 'Bot Token', data.DISCORD_BOT_TOKEN)}
                         </div>
 
                         <Button type="submit" className="w-full" disabled={processing}>
                             {processing ? (
                                 <>
+                                   
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Updating...
                                 </>
                             ) : (
-                                'Update Resources'
+                                'Update Settings'
                             )}
                         </Button>
                     </form>
@@ -114,7 +105,7 @@ export default function InitialResources() {
                             Success!
                         </AlertDialogTitle>
                         <AlertDialogDescription className="text-base">
-                            {flashMessage?.message || 'Resources have been successfully updated!'}
+                            {flashMessage?.message || 'Discord settings have been successfully updated!'}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -124,4 +115,4 @@ export default function InitialResources() {
             </AlertDialog>
         </>
     );
-}
+} 

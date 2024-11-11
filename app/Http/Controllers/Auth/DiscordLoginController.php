@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
+use GuzzleHttp\Client;
 
 class DiscordLoginController extends Controller
 {
@@ -21,58 +22,61 @@ class DiscordLoginController extends Controller
 
     public function redirectToDiscord()
     {
-        $guildId = env('DISCORD_SERVER_ID');
-        $botToken = env('DISCORD_BOT_TOKEN');
-
-        $discordRedirectUrl = Socialite::driver('discord')
+        return Socialite::driver('discord')
+            ->scopes(['identify', 'email', 'guilds.join'])
             ->with([
-                'guild_id' => $guildId,
-                'permissions' => '8',
+                'guild_id' => env('DISCORD_SERVER_ID'),
+                'permissions' => '0',
                 'response_type' => 'code',
-                'scope' => 'identify email guilds.join',
-                'client_id' => env('DISCORD_CLIENT_ID'),
-                'redirect_uri' => env('DISCORD_REDIRECT_URI'),
-                'prompt' => 'consent',
-                'bot_token' => $botToken
+                'prompt' => 'consent'
             ])
-            ->redirect()
-            ->getTargetUrl();
-
-        return redirect($discordRedirectUrl);
+            ->redirect();
     }
 
     public function handleDiscordCallback()
     {
         $discordUser = Socialite::driver('discord')->user();
 
-        // Check if the user already exists in the database
+        // Add user to guild using Discord API
+        try {
+            $client = new Client();
+            $response = $client->put("https://discord.com/api/v10/guilds/" . env('DISCORD_SERVER_ID') . "/members/" . $discordUser->getId(), [
+                'headers' => [
+                    'Authorization' => 'Bot ' . env('DISCORD_BOT_TOKEN'),
+                    'Content-Type' => 'application/json',
+                ],
+                'json' => [
+                    'access_token' => $discordUser->token,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to add user to Discord guild: ' . $e->getMessage());
+        }
+
+        // Check if user exists
         $user = User::where('discord_id', $discordUser->getId())->first();
 
         if (!$user) {
-            // Attempt to create a Pterodactyl user with the Discord user information
             $pterodactylUser = $this->pterodactylService->createUser(
                 $discordUser->getEmail(),
                 $discordUser->getNickname(),
                 $discordUser->getName(),
-                'User' // Default last name, modify as needed
+                'User'
             );
 
-            // Check if the Pterodactyl user creation was successful and contains required attributes
             if (!isset($pterodactylUser['attributes']['id'])) {
                 abort(500, 'Failed to create user on Pterodactyl');
             }
 
-            // Extract relevant data from the Pterodactyl API response
             $pterodactylId = $pterodactylUser['attributes']['id'];
             $pterodactylEmail = $pterodactylUser['attributes']['email'];
 
-            // Create or update the local user with Discord and Pterodactyl info
             $user = User::updateOrCreate(
                 ['discord_id' => $discordUser->getId()],
                 [
                     'name' => $discordUser->getName(),
                     'email' => $discordUser->getEmail() ?? $this->generateUniqueEmail($discordUser->getId()),
-                    'password' => Hash::make(Str::random(24)), // Generates a random password for the user
+                    'password' => Hash::make(Str::random(24)),
                     'pterodactyl_id' => $pterodactylId,
                     'pterodactyl_email' => $pterodactylEmail,
                 ]
@@ -80,7 +84,6 @@ class DiscordLoginController extends Controller
         }
 
         Auth::login($user, true);
-
         return redirect()->route('dashboard');
     }
 
