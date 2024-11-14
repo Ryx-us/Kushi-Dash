@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { LoadingScreen } from '@/components/loading-screen';
 
 const AuditLogComp = () => {
     const [logs, setLogs] = useState('');
@@ -47,7 +48,7 @@ const AuditLogComp = () => {
             <CardContent>
                 {loading ? (
                     <div className="flex justify-center items-center">
-                        <Loader2 className="h-6 w-6 animate-spin" />
+                       <LoadingScreen/>
                     </div>
                 ) : (
                     <div className="overflow-auto max-h-screen max-w-screen ">

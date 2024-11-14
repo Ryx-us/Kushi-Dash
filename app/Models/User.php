@@ -23,6 +23,7 @@ class User extends Authenticatable
         'resources',
         'limits',
         'rank',
+        'purchases_plans',
     ];
 
     protected $hidden = [
@@ -33,6 +34,7 @@ class User extends Authenticatable
     protected $casts = [
         'resources' => 'array',
         'limits' => 'array',
+        'purchases_plans' => 'array'
     ];
 
     public static function boot()
@@ -63,6 +65,10 @@ class User extends Authenticatable
                     'backups' => 0,
                     'servers' => 0,
                 ];
+                $user->save();
+            }
+            if (is_null($user->purchases_plans)) {  // Add this
+                $user->purchases_plans = [];
                 $user->save();
             }
         });

@@ -42,59 +42,67 @@ class UserController extends Controller
 
     // PUT request: Update user's rank and other details
     public function update(Request $request, $id)
-    {
-        // Log when the update route is accessed
-        Log::info('Update route accessed', [
-            'user_id' => $id,
-            'request_data' => $request->all(),
-        ]);
+{
+    // Log when the update route is accessed
+    Log::info('Update route accessed', [
+        'user_id' => $id,
+        'request_data' => $request->all(),
+    ]);
 
-        // Validate incoming request data
-        $validator = Validator::make($request->all(), [
-            'newName' => 'required|string|max:255',
-            'newEmail' => 'required|email|max:255',
-            'newDiscordId' => 'nullable|string|max:255',
-            'newRank' => 'nullable|string|in:free,premium,admin',
-            'newCoins' => 'nullable|integer|min:0',
-            'newResources' => 'nullable|array',
-            'newLimits' => 'nullable|array',
-            'newPterodactylId' => 'nullable|string|max:255',
-        ]);
+    // Validate incoming request data
+    $validator = Validator::make($request->all(), [
+        'newName' => 'required|string|max:255',
+        'newEmail' => 'required|email|max:255',
+        'newDiscordId' => 'nullable|string|max:255',
+        'newRank' => 'nullable|string|in:free,premium,admin',
+        'newCoins' => 'nullable|integer|min:0',
+        'newResources' => 'nullable|array',
+        'newLimits' => 'nullable|array',
+        'newPterodactylId' => 'nullable|string|max:255',
+        'planIds' => 'nullable|array', // Add validation for plan IDs
+        'planIds.*' => 'integer|exists:plans,id', // Validate each plan ID exists
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $validator->errors(),
-            ], 422);
-        }
-
-        // Find the user by ID
-        $user = User::find($id);
-        if (!$user) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'User not found',
-            ], 404);
-        }
-
-        // Update user attributes
-        $user->name = $request->newName;
-        $user->email = $request->newEmail;
-        $user->discord_id = $request->newDiscordId;
-        $user->rank = $request->newRank;
-        $user->coins = $request->newCoins ?? $user->coins; // Use existing value if not provided
-        $user->resources = $request->newResources ?? $user->resources; // Use existing value if not provided
-        $user->limits = $request->newLimits ?? $user->limits; // Use existing value if not provided
-        $user->pterodactyl_id = $request->newPterodactylId ?? $user->pterodactyl_id; // Use existing value if not provided
-
-        // Save the updated user to the database
-        $user->save();
-
-        Log::info('User updated successfully', [
-            'user_id' => $id,
-            'updated_data' => $request->all(),
-        ]);
-
-        return back()->with('status', 'success');
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $validator->errors(),
+        ], 422);
     }
+
+    // Find the user by ID
+    $user = User::find($id);
+    if (!$user) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'User not found',
+        ], 404);
+    }
+
+    // Update user attributes
+    $user->name = $request->newName;
+    $user->email = $request->newEmail;
+    $user->discord_id = $request->newDiscordId;
+    $user->rank = $request->newRank;
+    $user->coins = $request->newCoins ?? $user->coins;
+    $user->resources = $request->newResources ?? $user->resources;
+    $user->limits = $request->newLimits ?? $user->limits;
+    $user->pterodactyl_id = $request->newPterodactylId ?? $user->pterodactyl_id;
+    
+    // Update purchases_plans if provided
+    if ($request->has('planIds')) {
+        $user->purchases_plans = array_unique($request->planIds);
+    }
+
+    // Save the updated user to the database
+    $user->save();
+
+    Log::info('User updated successfully', [
+        'user_id' => $id,
+        'updated_data' => $request->all(),
+        'purchases_plans' => $user->purchases_plans,
+    ]);
+
+    return back()->with('status', 'success');
+}
 }

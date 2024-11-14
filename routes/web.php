@@ -27,6 +27,10 @@ use App\Http\Controllers\PlanController;
 
 
 
+
+
+
+
 // Admins shit
 
 Route::middleware(['auth', AdminMiddleware::class])->group(function () {
@@ -48,10 +52,18 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::post('/admin/update-env-collection', [AppSettings::class, 'updateEnvCollection']);
     Route::get('/admin/api/get-env', [AppSettings::class, 'getEnv']);
     Route::get('/admin/settings', [DefaultResources::class, 'show']);
+    
+    Route::get('/servers/new', [ServerController::class, 'create'])->name('servers.create');
+    Route::post('/servers', [ServerController::class, 'store'])->name('servers.store');
+
+    
+    
 
     // Stupid shit
 
     Route::get('/admin/api/locations', [LocationController::class, 'index'])->name('locations.index');
+    Route::get('/admin/locations', [LocationController::class, 'Viewindex'])->name('locations.Viewindex');
+    Route::get('/admin/locations/new', [LocationController::class, 'Viewcreate'])->name('locations.Viewcreate');
     Route::post('/admin/api/locations', [LocationController::class, 'store'])->name('locations.store');
     Route::get('/admin/api/locations/{location}', [LocationController::class, 'show'])->name('locations.show');
     Route::delete('/admin/api/locations/{location}', [LocationController::class, 'destroy'])->name('locations.destroy');
@@ -64,15 +76,20 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
 
 });
 // Plans Routes
+
+Route::get('/admin/api/locations', [LocationController::class, 'index'])->name('locations.index');
+
 Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     
-    Route::get('/admin/plans/new', [PlanController::class, 'index'])->name('plans.index');
+    Route::get('/admin/plans/new', [PlanController::class, 'create'])->name('plans.create');
+    Route::get('/admin/plans', [PlanController::class, 'index'])->name('plans.index');
     Route::get('/admin/plans/create', [PlanController::class, 'create'])->name('plans.create');
     Route::post('/admin/plans/store', [PlanController::class, 'store'])->name('plans.store');
     Route::get('/admin/plans/{plan}/edit', [PlanController::class, 'edit'])->name('plans.edit');
     Route::put('/admin/plans/{plan}', [PlanController::class, 'update'])->name('plans.update');
-    Route::delete('/admin/plans/{plan}', [PlanController::class, 'destroy'])->name('plans.destroy');
+    Route::delete('/admin/plans/{plan}', [PlanController::class, 'destroy'])->name('admin.plans.destroy');
     Route::get('/admin/api/plans', [PlanController::class, 'apiIndex'])->name('plans.api.Index');
+    
 });
 
 
@@ -130,6 +147,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/plans', [PlanController::class, 'Userindex'])->name('plans.Userindex');
 });
 
 Route::middleware(['auth', AdminMiddleware::class])->group(function () {
@@ -160,3 +178,5 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
 // Load additional authentication routes
 require __DIR__.'/auth.php';
 require __DIR__.'/PterodactylApi.php';
+
+// Image libs https://iconscout.com/illustrations/empty

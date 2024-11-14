@@ -18,7 +18,7 @@ export function LoadingScreen() {
   useEffect(() => {
     const interval = setInterval(() => {
       setFactIndex((prev) => (prev + 1) % facts.length);
-    }, 3000);
+    }, 3000); 
     return () => clearInterval(interval);
   }, []);
 

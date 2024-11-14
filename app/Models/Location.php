@@ -11,6 +11,7 @@ class Location extends Model
 
     protected $fillable = [
         'name',
+        'location', // Add this
         'servers',
         'flag',
         'maxservers',
@@ -24,13 +25,13 @@ class Location extends Model
     ];
 
     protected $casts = [
-        'requiredSubscriptions' => 'array',
-        'coinRenewal' => 'array',
-        'platform_settings' => 'array',
+        'requiredSubscriptions' => 'json', // Changed from 'array' to 'json'
+        'coinRenewal' => 'string',
+        'platform_settings' => 'json',  // Also change this to be consistent
         'maintenance' => 'boolean',
         'servers' => 'integer',
         'maxservers' => 'integer',
-        'requiredRank' => 'integer'
+        'requiredRank' => 'string'
     ];
 
     protected $attributes = [

@@ -10,7 +10,7 @@ class Plan extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', // Add the name field dumb bitch,
+        'name', 
         'price',
         'icon',
         'image',
@@ -27,9 +27,9 @@ class Plan extends Model
     ];
 
     protected $casts = [
-        'resources' => 'array',
-        'redirect' => 'array',
-        'perCustomer' => 'array',
-        'kushiConfig' => 'array',
+        'resources' => 'array',       // Keep this as 'array' if it's a JSON object/array
+        'redirect' => 'string',       // Assuming 'redirect' is a URL or string path
+        'perCustomer' => 'integer',   // Cast as 'integer' if it's a numeric field
+        'kushiConfig' => 'array',     // Keep this as 'array' if it's a JSON object/array
     ];
 }

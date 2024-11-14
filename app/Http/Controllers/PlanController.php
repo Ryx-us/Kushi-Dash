@@ -15,54 +15,113 @@ class PlanController extends Controller
     public function index()
     {
         $plans = Plan::all();
-        return Inertia::render('AdminPlanCreate', ['plans' => $plans]);
+        return Inertia::render('AdminPlans', ['plans' => $plans]);
     }
+
+    public function Userindex()
+{
+    try {
+        $plans = Plan::all();
+        
+        // Debug logging
+        Log::info('Fetched plans:', [
+            'count' => $plans->count(),
+            'plans' => $plans->toArray()
+        ]);
+
+        // Check if plans exist
+        if ($plans->isEmpty()) {
+            Log::warning('No plans found');
+        }
+
+        return Inertia::render('User/Products', [
+            'plans' => $plans,
+            'debug' => true // Add this to check in frontend
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Error fetching plans: ' . $e->getMessage());
+        return Inertia::render('User/Products', [
+            'plans' => [],
+            'error' => 'Failed to load plans'
+        ]);
+    }
+}
 
     /**
      * Show the form for creating a new plan.
      */
     public function create()
     {
-        return Inertia::render('Plans/Create');
+        $plans = Plan::all();
+        return Inertia::render('AdminPlanCreate', ['plans' => $plans]);
     }
 
     /**
      * Store a newly created plan in storage.
      */
     public function store(Request $request)
-    {
-        $validatedData = $this->validateRequest($request);
+{
+    // Extract Newresources from the request
+    $newResources = $request->input('Newresources', []);
 
-        // Fill in null for any missing values
-        $defaultValues = [
-            'name' => null,
-            'price' => null,
-            'icon' => null,
-            'image' => null,
-            'description' => null,
-            'resources' => null,
-            'discount' => null,
-            'visibility' => true,
-            'redirect' => null,
-            'perCustomer' => null,
-            'planType' => 'monthly',
-            'perPerson' => 1,
-            'stock' => 0,
-            'duration' => null,
-            'kushiConfig' => null,
-        ];
+    // Log the Newresources data
+    Log::info('Newresources received:', $newResources);
 
-        $dataToStore = array_merge($defaultValues, $validatedData);
+    // Convert Newresources to resources and to the appropriate data type
+    $resources = array_map('intval', $newResources);
 
-        try {
-            Plan::create($dataToStore);
-            return redirect()->route('plans.index')->with('success', 'Plan created successfully.');
-        } catch (\Exception $e) {
-            Log::error('Failed to create plan: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to create plan.');
-        }
+    // Add resources to the request data
+    $request->merge(['resources' => $resources]);
+
+    // Validate the request data
+    $validatedData = $this->validateRequest($request);
+
+    Log::info('Validated data after conversion:', $validatedData);
+    Log::info('Data received for plan creation:', $request->all());
+
+    // Fill in null for any missing values
+    $defaultValues = [
+        'name' => null,
+        'price' => null,
+        'icon' => null,
+        'image' => null,
+        'description' => null,
+        'resources' => [
+            'cpu' => 0,
+            'memory' => 0,
+            'disk' => 0,
+            'databases' => 0,
+            'allocations' => 0,
+            'backups' => 0,
+            'servers' => 0,
+        ],
+        'discount' => null,
+        'visibility' => true,
+        'redirect' => null,
+        'perCustomer' => null,
+        'planType' => 'monthly',
+        'perPerson' => 1,
+        'stock' => 0,
+        'duration' => null,
+        'kushiConfig' => null,
+    ];
+
+    $dataToStore = array_merge($defaultValues, $validatedData);
+
+    // Log the resources
+    Log::info('Resources received for plan creation:', [
+        'resources' => $dataToStore['resources']
+    ]);
+
+    try {
+        Plan::create($dataToStore);
+        return redirect()->route('plans.index')->with('success', 'Plan created successfully.');
+    } catch (\Exception $e) {
+        Log::error('Failed to create plan: ' . $e->getMessage());
+        return redirect()->back()->with('error', 'Failed to create plan.');
     }
-
+}
     /**
      * Show the form for editing the specified plan.
      */
@@ -177,7 +236,7 @@ class PlanController extends Controller
             'price' => 'nullable|numeric|min:0',
             'icon' => 'nullable|string',
             'image' => 'nullable|string',
-            'description' => 'nullable|string',
+            'description' => 'required|string|max:65535',
             'resources' => 'nullable|array',
             'discount' => 'nullable|numeric|min:0',
             'visibility' => 'boolean',

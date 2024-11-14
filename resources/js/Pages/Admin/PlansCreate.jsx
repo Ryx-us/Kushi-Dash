@@ -9,14 +9,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
-const PlanForm = ({ plan = {} }) => {
-    const { data, setData, post, put, processing, errors, reset } = useForm({
-        name: plan.name || '',
-        description: plan.description || '',
-        price: plan.price || '',
-        icon: plan.icon || '',
-        image: plan.image || '',
-        resources: plan.resources || {
+const PlanForm = () => {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        name: '',
+        description: '',
+        price: '',
+        icon: '',
+        image: '',
+        Newresources: {
             cpu: 0,
             memory: 0,
             disk: 0,
@@ -25,14 +25,14 @@ const PlanForm = ({ plan = {} }) => {
             backups: 0,
             servers: 0
         },
-        discount: plan.discount || '',
-        visibility: plan.visibility || false,
-        redirect: plan.redirect || '',
-        perCustomer: plan.perCustomer || '',
-        planType: plan.planType || 'monthly',
-        perPerson: plan.perPerson || 1,
-        stock: plan.stock || 0,
-        kushiConfig: plan.kushiConfig || ''
+        discount: '',
+        visibility: false,
+        redirect: '',
+        perCustomer: '',
+        planType: 'monthly',
+        perPerson: 1,
+        stock: 0,
+        kushiConfig: ''
     });
 
     const { flash } = usePage().props;
@@ -60,11 +60,8 @@ const PlanForm = ({ plan = {} }) => {
         };
         
         try {
-            if (plan.id) {
-                await put(`/admin/plans/${plan.id}`, requiredData);
-            } else {
-                await post('/admin/plans/store', requiredData);
-            }
+            await post('/admin/plans/store', requiredData);
+            console.log('Data:', requiredData);
             reset();
         } catch (error) {
             console.error('An error occurred while submitting the form.');
@@ -73,21 +70,16 @@ const PlanForm = ({ plan = {} }) => {
 
     const handleSuccessClose = () => {
         setShowSuccessDialog(false);
-        if (!plan.id) {
-            reset();
-        }
+        reset();
     };
 
     return (
         <>
             <Card className="w-full max-w-2xl mx-auto">
                 <CardHeader>
-                    <CardTitle>{plan.id ? 'Update Plan' : 'Create New Plan'}</CardTitle>
+                    <CardTitle>Create New Plan</CardTitle>
                     <CardDescription>
-                        {plan.id
-                            ? 'Update the details for this plan configuration'
-                            : 'Define a new plan with available billing cycles, visibility, and customer limits.'
-                        }
+                        Define a new plan with available billing cycles, visibility, and customer limits.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -172,8 +164,8 @@ const PlanForm = ({ plan = {} }) => {
                                     <Input
                                         id="cpu"
                                         type="number"
-                                        value={data.resources.cpu}
-                                        onChange={(e) => setData('resources', { ...data.resources, cpu: e.target.value })}
+                                        value={data.Newresources.cpu}
+                                        onChange={(e) => setData('Newresources', { ...data.Newresources, cpu: e.target.value })}
                                     />
                                 </div>
                                 <div>
@@ -181,8 +173,8 @@ const PlanForm = ({ plan = {} }) => {
                                     <Input
                                         id="memory"
                                         type="number"
-                                        value={data.resources.memory}
-                                        onChange={(e) => setData('resources', { ...data.resources, memory: e.target.value })}
+                                        value={data.Newresources.memory}
+                                        onChange={(e) => setData('Newresources', { ...data.Newresources, memory: e.target.value })}
                                     />
                                 </div>
                                 <div>
@@ -190,8 +182,8 @@ const PlanForm = ({ plan = {} }) => {
                                     <Input
                                         id="disk"
                                         type="number"
-                                        value={data.resources.disk}
-                                        onChange={(e) => setData('resources', { ...data.resources, disk: e.target.value })}
+                                        value={data.Newresources.disk}
+                                        onChange={(e) => setData('Newresources', { ...data.Newresources, disk: e.target.value })}
                                     />
                                 </div>
                                 <div>
@@ -199,8 +191,8 @@ const PlanForm = ({ plan = {} }) => {
                                     <Input
                                         id="databases"
                                         type="number"
-                                        value={data.resources.databases}
-                                        onChange={(e) => setData('resources', { ...data.resources, databases: e.target.value })}
+                                        value={data.Newresources.databases}
+                                        onChange={(e) => setData('Newresources', { ...data.Newresources, databases: e.target.value })}
                                     />
                                 </div>
                                 <div>
@@ -208,8 +200,8 @@ const PlanForm = ({ plan = {} }) => {
                                     <Input
                                         id="allocations"
                                         type="number"
-                                        value={data.resources.allocations}
-                                        onChange={(e) => setData('resources', { ...data.resources, allocations: e.target.value })}
+                                        value={data.Newresources.allocations}
+                                        onChange={(e) => setData('Newresources', { ...data.Newresources, allocations: e.target.value })}
                                     />
                                 </div>
                                 <div>
@@ -217,8 +209,8 @@ const PlanForm = ({ plan = {} }) => {
                                     <Input
                                         id="backups"
                                         type="number"
-                                        value={data.resources.backups}
-                                        onChange={(e) => setData('resources', { ...data.resources, backups: e.target.value })}
+                                        value={data.Newresources.backups}
+                                        onChange={(e) => setData('Newresources', { ...data.Newresources, backups: e.target.value })}
                                     />
                                 </div>
                                 <div>
@@ -226,8 +218,8 @@ const PlanForm = ({ plan = {} }) => {
                                     <Input
                                         id="servers"
                                         type="number"
-                                        value={data.resources.servers}
-                                        onChange={(e) => setData('resources', { ...data.resources, servers: e.target.value })}
+                                        value={data.Newresources.servers}
+                                        onChange={(e) => setData('Newresources', { ...data.Newresources, servers: e.target.value })}
                                     />
                                 </div>
                             </div>
@@ -253,6 +245,7 @@ const PlanForm = ({ plan = {} }) => {
                                 id="visibility"
                                 checked={data.visibility}
                                 onChange={(e) => setData('visibility', e.target.checked)}
+                                className='k ml-2 rounded-full mb-10'
                             />
                         </div>
 
@@ -288,8 +281,9 @@ const PlanForm = ({ plan = {} }) => {
                                 id="planType"
                                 value={data.planType}
                                 onChange={(e) => setData('planType', e.target.value)}
+                                className='text-black ml-2 rounded-full'
                             >
-                                <option value="monthly">Monthly</option>
+                                <option value="monthly" className="text-black dark:text-black">Monthly</option>
                                 <option value="lifetime">Lifetime</option>
                             </select>
                         </div>
@@ -328,10 +322,10 @@ const PlanForm = ({ plan = {} }) => {
                             {processing ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    {plan.id ? 'Updating...' : 'Creating...'}
+                                    Creating...
                                 </>
                             ) : (
-                                plan.id ? 'Update Plan' : 'Create Plan'
+                                'Create Plan'
                             )}
                         </Button>
                     </form>
