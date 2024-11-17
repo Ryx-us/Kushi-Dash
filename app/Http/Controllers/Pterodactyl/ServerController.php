@@ -168,51 +168,70 @@ class ServerController extends Controller
 
         // Get egg details
         $eggDetails = $pterodactylService->getEggDetails($egg->nestId, $egg->EggID);
-        
+        if (!$eggDetails || !isset($eggDetails['attributes'])) {
+            return back()->with('status', 'Error: Unable to retrieve egg details');
+        }
+
+        Log::info('Egg service response:', $eggDetails);
+
         // Build environment variables
         $environment = [];
-        if (isset($eggDetails['attributes']['relationships']['variables']['data'])) {
-            foreach ($eggDetails['attributes']['relationships']['variables']['data'] as $variable) {
-                $attr = $variable['attributes'];
-                
-                if (!empty($attr['default_value'])) {
-                    $environment[$attr['env_variable']] = $attr['default_value'];
-                } else if (strpos($attr['rules'], 'in:') !== false) {
-                    preg_match('/in:([^|]+)/', $attr['rules'], $matches);
-                    if (isset($matches[1])) {
-                        $environment[$attr['env_variable']] = $matches[1];
-                    }
-                } else if ($attr['rules'] === 'required|string') {
-                    $customVars = $egg->additional_environmental_variables;
-                    $matched = array_filter($customVars, fn($v) => $v['name'] === $attr['name']);
-                    if (!empty($matched)) {
-                        $environment[$attr['env_variable']] = reset($matched)['value'];
-                    }
+        $variables = $eggDetails['attributes']['relationships']['variables']['data'] ?? [];
+
+        foreach ($variables as $variable) {
+            $attr = $variable['attributes'];
+            $envVar = $attr['env_variable'];
+
+            if (!empty($attr['default_value'])) {
+                $environment[$envVar] = $attr['default_value'];
+            }
+
+            if (strpos($attr['rules'], 'required') !== false) {
+                $value = $request->input($envVar, $attr['default_value']);
+                if (empty($value) && $attr['rules'] !== 'required|boolean') {
+                    return back()->with('status', "Error: Missing value for {$envVar}");
                 }
+                $environment[$envVar] = $value;
+            }
+
+            if (strpos($attr['rules'], 'boolean') !== false && !isset($environment[$envVar])) {
+                $environment[$envVar] = $request->input($envVar, '0');
             }
         }
 
-        // Create server
-        $server = $pterodactylService->createServer(
-            $request->name,
-            $user->pterodactyl_id,
-            $eggDetails['attributes']['id'],
-            $eggDetails['attributes']['docker_image'],
-            $environment,
-            [
-                'memory' => $request->memory,
-                'disk' => $request->disk,
-                'cpu' => $request->cpu,
+        Log::info('Environment variables:', $environment);
+
+        // Continue with server creation...
+
+        $serverPayload = [
+            'name' => $request->name,
+            'user' => (int) $user->pterodactyl_id,
+            'egg' => (int) $egg->EggID,
+            'docker_image' => $eggDetails['attributes']['docker_image'],
+            'startup' => $eggDetails['attributes']['startup'],
+            'environment' => $environment,
+            'limits' => [
+                'memory' => (int) $request->memory,
+                'swap' => 0,
+                'disk' => (int) $request->disk,
                 'io' => 500,
-                'swap' => 0
+                'cpu' => (int) $request->cpu,
             ],
-            [
-                'databases' => $request->databases ?? 0,
-                'backups' => $request->backups ?? 0
+            'feature_limits' => [
+                'databases' => (int) ($request->databases ?? 0),
+                'backups' => (int) ($request->backups ?? 0),
             ],
-            $allocation['id'],
-            $eggDetails['attributes']['startup'] ?? null
-        );
+            'allocation' => [
+                'default' => $allocation['id'],
+            ],
+        ];
+
+        Log::info('Creating server with payload:', ['payload' => $serverPayload]);
+
+        $server = $pterodactylService->createServer($serverPayload);
+
+        // Create server
+        
 
         $user->resources = [
             'cpu' => $user->resources['cpu'] + $request->cpu,

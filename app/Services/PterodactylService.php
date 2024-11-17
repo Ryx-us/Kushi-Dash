@@ -12,6 +12,20 @@ class PterodactylService
     protected $apiUrl;
     protected $apiKey;
     protected $client;
+    /**
+     * Creates a new server in Pterodactyl.
+     *
+     * @param string $name
+     * @param int $userId
+     * @param int $eggId
+     * @param string $dockerImage
+     * @param array $environment
+     * @param array $limits
+     * @param array $featureLimits
+     * @param int $allocation
+     * @param string|null $startup
+     * @return array|null
+     */
 
     public function __construct()
     {
@@ -27,58 +41,29 @@ class PterodactylService
         ]);
     }
 
-    public function createServer(
-        string $name,
-        int $userId,
-        int $eggId,
-        string $dockerImage,
-        array $environment,
-        array $limits,
-        array $featureLimits,
-        int $allocation,
-        ?string $startup = null
-    ) {
+    /**
+     * Create a new server with the given payload.
+     *
+     * @param array $payload
+     * @return array|null
+     */
+    public function createServer(array $payload)
+    {
         try {
-            $payload = [
-                'name' => $name,
-                'user' => $userId,
-                'egg' => $eggId,
-                'docker_image' => $dockerImage,
-                'startup' => $startup,
-                'environment' => $environment,
-                'limits' => [
-                    'memory' => $limits['memory'] ?? 128,
-                    'swap' => $limits['swap'] ?? 0,
-                    'disk' => $limits['disk'] ?? 512,
-                    'io' => $limits['io'] ?? 500,
-                    'cpu' => $limits['cpu'] ?? 100
-                ],
-                'feature_limits' => [
-                    'databases' => $featureLimits['databases'] ?? 0,
-                    'backups' => $featureLimits['backups'] ?? 0
-                ],
-                'allocation' => [
-                    'default' => $allocation
-                ]
-            ];
-    
-            $response = $this->client->postAsync('/api/application/servers', [
+            $response = $this->client->post('/api/application/servers', [
                 'json' => $payload
-            ])->wait();
-    
-            if ($response->getStatusCode() !== 201) {
-                Log::error('Failed to create server: ' . $response->getBody());
-                throw new \Exception('Failed to create server: ' . $response->getBody());
-            }
-    
-            return json_decode($response->getBody(), true);
-        } catch (\GuzzleHttp\Exception\ClientException $e) {
-            if ($e->getResponse()->getStatusCode() === 404) {
-                return null;
-            }
-            throw $e;
+            ]);
+
+            $data = json_decode($response->getBody(), true);
+            Log::info('Server created successfully:', $data);
+
+            return $data;
+        } catch (\Exception $e) {
+            Log::error('Failed to create server: ' . $e->getMessage());
+            return null;
         }
     }
+
 
     public function getRandomUnassignedAllocation($nodeId)
 {
@@ -130,23 +115,33 @@ class PterodactylService
 }
 
     public function createUser($email, $username, $firstName, $lastName)
-    {
-        $response = $this->client->postAsync('/api/application/users', [
-            'json' => [
-                'email' => $email,
-                'username' => $username,
-                'first_name' => $firstName,
-                'last_name' => $lastName
-            ]
-        ])->wait();
+{
+    // Function to sanitize input by replacing non-alphanumeric characters with 'X'
+    $sanitize = function($input) {
+        return preg_replace('/[^a-zA-Z0-9]/', 'X', $input);
+    };
 
-        if ($response->getStatusCode() !== 201) {
-            Log::error('Failed to create user on Pterodactyl: ' . $response->getBody());
-            throw new \Exception('Failed to create user on Pterodactyl: ' . $response->getBody());
-        }
+    // Sanitize the fields except email
+    $sanitizedUsername = $sanitize($username);
+    $sanitizedFirstName = $sanitize($firstName);
+    $sanitizedLastName = $sanitize($lastName);
 
-        return json_decode($response->getBody(), true);
+    $response = $this->client->postAsync('/api/application/users', [
+        'json' => [
+            'email' => $email,
+            'username' => $sanitizedUsername,
+            'first_name' => $sanitizedFirstName,
+            'last_name' => $sanitizedLastName
+        ]
+    ])->wait();
+
+    if ($response->getStatusCode() !== 201) {
+        Log::error('Failed to create user on Pterodactyl: ' . $response->getBody());
+        throw new \Exception('Failed to create user on Pterodactyl: ' . $response->getBody());
     }
+
+    return json_decode($response->getBody(), true);
+}
 
     public function getUserDetails($userId)
     {
@@ -190,34 +185,53 @@ class PterodactylService
 {
     Log::info("Fetching servers for user ID: {$userId}");
 
-    $response = $this->client->getAsync("/api/application/users/{$userId}?include=servers")->wait();
+    try {
+        $response = $this->client->getAsync("/api/application/users/{$userId}?include=servers")->wait();
 
-    if ($response->getStatusCode() !== 200) {
-        Log::error('Failed to fetch user servers: ' . $response->getBody());
-        throw new \Exception('Failed to fetch user servers: ' . $response->getBody());
+        if ($response->getStatusCode() === 200) {
+            $data = json_decode($response->getBody(), true);
+            
+            Log::debug('Raw API response:', [
+                'data' => $data
+            ]);
+
+            // Extract the servers array from relationships
+            $servers = $data['attributes']['relationships']['servers']['data'] ?? [];
+
+            Log::info('Retrieved servers:', [
+                'user_id' => $userId,
+                'server_count' => count($servers),
+                'servers' => array_map(function($server) {
+                    return [
+                        'id' => $server['attributes']['id'] ?? 'N/A',
+                        'name' => $server['attributes']['name'] ?? 'N/A'
+                    ];
+                }, $servers)
+            ]);
+
+            return $servers;
+        } elseif ($response->getStatusCode() === 404) {
+            Log::warning("User ID {$userId} not found or no servers available.");
+            return null;
+        } else {
+            Log::error('Unexpected response while fetching user servers: ' . $response->getBody());
+            throw new \Exception('Unexpected error fetching user servers.');
+        }
+    } catch (\GuzzleHttp\Exception\ClientException $e) {
+        // Handle 404 Not Found separately
+        if ($e->getResponse() && $e->getResponse()->getStatusCode() === 404) {
+            Log::warning("User ID {$userId} not found or no servers available.");
+            return null;
+        }
+
+        // Rethrow other client exceptions
+        Log::error('Client error while fetching user servers: ' . $e->getMessage());
+        throw new \Exception('Client error fetching user servers.');
+    } catch (\Exception $e) {
+        // Handle other exceptions
+        Log::error('Failed to fetch user servers: ' . $e->getMessage());
+        throw new \Exception('Failed to fetch user servers.');
     }
-
-    $data = json_decode($response->getBody(), true);
-    
-    Log::debug('Raw API response:', [
-        'data' => $data
-    ]);
-
-    // Extract just the servers array from relationships
-    $servers = $data['attributes']['relationships']['servers']['data'] ?? [];
-
-    Log::info('Retrieved servers:', [
-        'user_id' => $userId,
-        'server_count' => count($servers),
-        'servers' => array_map(function($server) {
-            return [
-                'id' => $server['attributes']['id'] ?? 'N/A',
-                'name' => $server['attributes']['name'] ?? 'N/A'
-            ];
-        }, $servers)
-    ]);
-
-    return $servers;
 }
 
 
