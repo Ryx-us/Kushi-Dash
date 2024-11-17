@@ -26,6 +26,24 @@ class UserController extends Controller
         return response()->json($user);
     }
 
+    public function showClient(Request $request, $id)
+{
+    $user = User::findOrFail($id);
+    
+    if ($request->email === $user->email) {
+        return response()->json([
+            'user' => $user,
+            
+        ]);
+    }
+
+    return response()->json([
+        'message' => 'Unauthorized. Please stop peaking around the APIs and go watch soggy cereal :D'
+    ], 401);
+}
+
+    
+
     // POST request: Return all users as an Inertia flash message
     public function store(Request $request)
     {
@@ -39,6 +57,58 @@ class UserController extends Controller
         Log::info('User data retrieved for edit:', ['user' => $user]);
         return Inertia::render('AdminUserEdit', ['userId' => $id]);
     }
+
+    public function destroy($id)
+{
+    try {
+        Log::info('Delete user request received', ['user_id' => $id]);
+
+        $user = User::find($id);
+        
+        if (!$user) {
+            Log::warning('User not found for deletion', ['user_id' => $id]);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not found'
+            ], 404);
+        }
+
+        $user->delete();
+
+        Log::info('User deleted successfully', [
+            'user_id' => $id,
+            'user_details' => $user->toArray()
+        ]);
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'User deleted successfully'
+            ]);
+        }
+
+        return back()->with([
+            'status' => 'success',
+            'message' => 'User deleted successfully'
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Failed to delete user', [
+            'user_id' => $id,
+            'error' => $e->getMessage()
+        ]);
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to delete user'
+            ], 500);
+        }
+
+        return back()->withErrors([
+            'error' => 'Failed to delete user'
+        ]);
+    }
+}
 
     // PUT request: Update user's rank and other details
     public function update(Request $request, $id)

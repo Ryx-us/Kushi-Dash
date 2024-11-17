@@ -28,6 +28,7 @@ class PterodactylEggController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'EggID' => 'required|string|max:255',
+            'nestId' => 'nullable|string|max:255',
             'imageUrl' => 'nullable|string|max:255',
             'icon' => 'nullable|string|max:255',
             'additional_environmental_variables' => 'nullable|array',
@@ -42,6 +43,31 @@ class PterodactylEggController extends Controller
         ]);
     }
 
+    public function getEggInfo($id)
+{
+    $egg = PterodactylEggs::findOrFail($id);
+
+    if (!$egg) {
+        return response()->json([
+            'error' => 'Egg not found',
+            'status' => 404
+        ], 404);
+    }
+
+    return response()->json([
+        'status' => 200,
+        'data' => [
+            'id' => $egg->id,
+            'name' => $egg->name,
+            'description' => $egg->description,
+            'EggID' => $egg->EggID,
+            'imageUrl' => $egg->imageUrl,
+            'icon' => $egg->icon,
+            'additional_environmental_variables' => $egg->additional_environmental_variables
+        ]
+    ]);
+}
+
     public function edit($id)
     {
         $egg = PterodactylEggs::findOrFail($id);
@@ -54,6 +80,7 @@ class PterodactylEggController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'EggID' => 'required|string|max:255',
+            'nestId' => 'nullable|string|max:255',
             'imageUrl' => 'nullable|string|max:255',
             'icon' => 'nullable|string|max:255',
             'additional_environmental_variables' => 'nullable|array',

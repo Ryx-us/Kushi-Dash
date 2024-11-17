@@ -14,6 +14,7 @@ const EggEditForm = ({ id }) => {
         name: '',
         description: '',
         EggID: '',
+        nestId: '',
         imageUrl: '',
         icon: '',
         additional_environmental_variables: [] // Ensure this is always an array
@@ -34,6 +35,7 @@ const EggEditForm = ({ id }) => {
                         name: data.name || '',
                         description: data.description || '',
                         EggID: data.EggID || '',
+                        nestId: data.nestId || '',
                         imageUrl: data.imageUrl || '',
                         icon: data.icon || '',
                         additional_environmental_variables: data.additional_environmental_variables || []
@@ -143,6 +145,19 @@ const EggEditForm = ({ id }) => {
                                 onChange={(e) => setData('EggID', e.target.value)}
                                 placeholder="Enter egg ID"
                                 className={errors.EggID ? 'border-red-500' : ''}
+                            />
+                            {errors.EggID && <p className="text-sm text-red-500">{errors.EggID}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="eggId">Pterodactyl Nest ID</Label>
+                            <Input
+                                id="eggId"
+                                type="text"
+                                value={data.nestId}
+                                onChange={(e) => setData('nestId', e.target.value)}
+                                placeholder="Enter egg ID"
+                                className={errors.nestId ? 'border-red-500' : ''}
                             />
                             {errors.EggID && <p className="text-sm text-red-500">{errors.EggID}</p>}
                         </div>

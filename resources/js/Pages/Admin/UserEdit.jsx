@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useForm, usePage } from '@inertiajs/react';
+import { useForm, usePage, router } from '@inertiajs/react';
 import {
   Card,
   CardContent,
@@ -56,6 +56,23 @@ export default function Component({ userId = '1' }) {
     };
     fetchPlans();
   }, []);
+
+  const handleDelete = () => {
+    if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      router.delete(`/admin/users/${userId}`, {
+        onSuccess: () => {
+          // Redirect to users list after successful deletion
+          router.visit('/admin/users');
+        },
+        onError: (errors) => {
+          setFlashMessage({
+            type: 'error',
+            message: 'Failed to delete user'
+          });
+        }
+      });
+    }
+  };
 
   useEffect(() => {
     if (userId && initialLoad) {
@@ -331,6 +348,16 @@ const handleRemoveResources = () => {
               {renderNestedFields('newResources', data.newResources, 'Resources')}
               {renderNestedFields('newLimits', data.newLimits, 'Limits')}
             </div>
+
+            <Button 
+    type="button" 
+    variant="destructive"
+    onClick={handleDelete}
+    className="flex-1"
+  >
+    Delete User
+  </Button>
+ 
 
             <Button type="submit" className="w-full" disabled={processing}>
               {processing ? (

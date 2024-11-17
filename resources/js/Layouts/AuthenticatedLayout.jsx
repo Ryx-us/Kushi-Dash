@@ -40,6 +40,7 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import Footer from '@/components/Footer'
 
 const MenuItem = ({ icon: Icon, label, href, isActive = false }) => (
     <Link
@@ -134,14 +135,9 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
                             icon={LucideMonitorUp}
                             label="deploy"
                             href="/deploy"
-                            isActive={sidebartab === 'payments'}
+                            isActive={sidebartab === 'deploy'}
                         />
-                        <MenuItem
-                            icon={BarChart3}
-                            label="Resources"
-                            href="#"
-                            isActive={sidebartab === 'balance'}
-                        />
+                        
                         <MenuItem
                             icon={LucideLock}
                             label="Control Panel"
@@ -156,6 +152,12 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
                             label="Products"
                             href="/plans"
                             isActive={sidebartab === 'products'}
+                        />
+                        <MenuItem
+                            icon={BarChart3}
+                            label="Earn Coins"
+                            href="/earn"
+                            isActive={sidebartab === 'earn'}
                         />
                     </MenuSection>
                     <MenuSection title="USER">
@@ -261,13 +263,17 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
 
                 <div className="flex-1 overflow-hidden bg-zinc-50 dark:bg-zinc-900">
                     <div className="h-full overflow-y-auto p-4">
-                        <div className="mx-auto max-w-7xl">
+                        <div className="mx-auto ">
                             {children}
+                            <Footer/>
                         </div>
                     </div>
+                    
+
                 </div>
             </div>
 
+           
             {/* Overlay for mobile */}
             {isSidebarOpen && (
                 <div 

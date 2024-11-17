@@ -39,7 +39,9 @@ class AppServiceProvider extends ServiceProvider
                     'res' => session('res'),
                     'servers' => session('servers'),
                     'users' => session('users'),
+                    'server_url' => session('server_url'),
                     'secerts' => session('secerts'),
+                    'linkvertiseUrl' => session('linkvertiseUrl'),
                 ];
             },
         ]);

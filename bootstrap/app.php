@@ -24,7 +24,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        
-        //
+        $exceptions->render(function (NotFoundHttpException $e) {
+            return response()->view('404', [], 404);
+        });
     })
     ->create();

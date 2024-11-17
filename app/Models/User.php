@@ -24,11 +24,13 @@ class User extends Authenticatable
         'limits',
         'rank',
         'purchases_plans',
+        'redeem_code',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'redeem_code',
     ];
 
     protected $casts = [
@@ -73,6 +75,8 @@ class User extends Authenticatable
             }
         });
     }
+
+    
 
     public function getIsAdminAttribute()
     {

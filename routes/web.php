@@ -23,6 +23,7 @@ use App\Http\Controllers\PterodactylSettingsController;
 use App\Http\Controllers\DiscordSettingsController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\PlanController;
+use App\Http\Controllers\EarningController;
 
 
 
@@ -38,7 +39,7 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::get('/admin/eggs/create', [PterodactylEggController::class, 'create'])->name('admin.eggs.create');
     Route::get('/admin/eggs', [PterodactylEggController::class, 'index'])->name('admin.eggs.index');
     Route::post('/admin/eggs/store', [PterodactylEggController::class, 'store'])->name('admin.eggs.store');
-    Route::get('/admin/eggs/{egg}/edit', [PterodactylEggController::class, 'edit'])->name('admin.eggs.edit');
+    Route::get('/admin/egg/edit/{egg}', [PterodactylEggController::class, 'edit'])->name('admin.eggs.edit');
     Route::put('/admin/eggs/update/{egg}', [PterodactylEggController::class, 'update'])->name('admin.eggs.update');
     Route::delete('/admin/api/eggs/{egg}', [PterodactylEggController::class, 'destroy'])->name('admin.eggs.destroy');
     Route::get('admin/api/logs', [LogController::class, 'getLogs']);
@@ -46,14 +47,17 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::get('/admin/api/users', [UserController::class, 'index']);
     Route::get('admin/api/users/{id}', [UserController::class, 'show']);
     Route::get('/admin/users/{id}/edit', [UserController::class, 'edit']);
+    Route::delete('/admin/users/{id}', [UserController::class, 'destroy'])
+    ->name('admin.users.destroy');
     Route::post('/admin/api/users', [UserController::class, 'store']);
+    Route::get('/admin/eggs/info/{id}', [PterodactylEggController::class, 'getEggInfo'])->name('admin.eggs.info');
     Route::put('/admin/api/users/{id}/update', [UserController::class, 'update']);
     Route::post('/admin/update-env', [AppSettings::class, 'updateEnv']);
     Route::post('/admin/update-env-collection', [AppSettings::class, 'updateEnvCollection']);
     Route::get('/admin/api/get-env', [AppSettings::class, 'getEnv']);
     Route::get('/admin/settings', [DefaultResources::class, 'show']);
     
-    Route::get('/servers/new', [ServerController::class, 'create'])->name('servers.create');
+    Route::get('/deploy', [ServerController::class, 'create'])->name('servers.create');
     Route::post('/servers', [ServerController::class, 'store'])->name('servers.store');
 
     
@@ -100,7 +104,7 @@ Route::get('/client/api/pterodactyl/egg/{id}', [PterodactylEggController::class,
 Route::get('/admin/api/eggs', [PterodactylEggController::class, 'getAllEggs'])->name('admin.eggs.getAllEggs');
 
 //Edit editing
-Route::get('/admin/egg/edit/{id}', [PterodactylEggController::class, 'edit'])->name('admin.eggs.edit');
+
 
 
 
@@ -148,6 +152,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/plans', [PlanController::class, 'Userindex'])->name('plans.Userindex');
+    Route::get('client/api/users/{id}', [UserController::class, 'showClient']);
 });
 
 Route::middleware(['auth', AdminMiddleware::class])->group(function () {
@@ -172,6 +177,11 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
 Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::get('/admin/discord-settings', [DiscordSettingsController::class, 'show'])->name('discord.settings');
     Route::post('/admin/api/update-discord-settings', [DiscordSettingsController::class, 'update'])->name('discord.settings.update');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/earn', [EarningController::class, 'earn'])->name('earn');
+    Route::post('/generate-linkvertise', [EarningController::class, 'generateLinkvertiseLink'])->name('generate.linkvertise');
 });
 
 

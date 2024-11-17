@@ -3,6 +3,7 @@ import { Head, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.jsx";
 import ServerDisplay from "@/Pages/Dashboard/DisplayServer.jsx";
 import { Cog, Crown, User } from 'lucide-react'; // Using lucide-react icons
+import ResourcesView from './Common/Resources';
 
 export default function AdminDashboard() {
     const { auth } = usePage().props; // Get auth user data from Inertia props\
@@ -53,9 +54,13 @@ export default function AdminDashboard() {
                 </div>
             </div>
 
+            <ResourcesView/>
+
            
 
             <ServerDisplay />
+
+            
 
         </AuthenticatedLayout>
     );

@@ -14,12 +14,13 @@ class PterodactylEggs extends Model
         'description',
         'EggID',
         'imageUrl',
+        'nestId',
         'icon',
         'additional_environmental_variables'
     ];
 
     protected $casts = [
-            'additional_environmental_variables' => 'array', // Add this line
+            'additional_environmental_variables' => 'array', // Add this line so no sex with dogs
         ];
 
     public static $requiredPlans = [
