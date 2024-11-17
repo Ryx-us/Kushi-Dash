@@ -60,6 +60,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'linkvertiseEnabled' => config('linkvertise.enabled'),
             'linkvertiseId' => config('linkvertise.id'),
+            'pterodactyl_URL' => env('PTERODACTYL_API_URL'),
         ];
     }
 }

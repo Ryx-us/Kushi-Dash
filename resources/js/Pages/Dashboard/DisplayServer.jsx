@@ -29,6 +29,11 @@ export default function DisplayServer({ className = '' }) {
 
     const { status } = usePage().props
     const [showSuccess, setShowSuccess] = useState(!!status)
+    const { pterodactyl_URL } = usePage().props;
+
+  
+
+    
 
     useEffect(() => {
         hotReloadApi().then(fetchServers)
@@ -85,6 +90,17 @@ export default function DisplayServer({ className = '' }) {
             },
         })
     }
+
+    const handleExternalLinkClick = () => {
+        if (!pterodactyl_URL) {
+            console.error('Pterodactyl URL is not defined.');
+            return;
+        }
+
+        const serverUrl = `${pterodactyl_URL}`;
+        console.log(servers.identifier)
+        window.open(serverUrl, '_blank');
+    };
 
     if (isLoading) {
         return (
@@ -204,9 +220,9 @@ export default function DisplayServer({ className = '' }) {
                             <Button variant="ghost" size="icon">
                                 <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon">
-                                <ExternalLink className="h-4 w-4" />
-                            </Button>
+                            <Button variant="ghost" size="icon" onClick={handleExternalLinkClick}>
+                <ExternalLink className="h-4 w-4" />
+            </Button>
                             <Button 
                                 variant="ghost" 
                                 size="icon" 

@@ -325,7 +325,6 @@ export default function ServerCreate() {
               onChange={(value) => setData('disk', value)}
               min={512}
               max={calculateRemaining('disk')}
-              step={512}
               remaining={calculateRemaining('disk')}
             />
 
@@ -344,7 +343,6 @@ export default function ServerCreate() {
                 label="Databases"
                 value={data.databases}
                 onChange={(value) => setData('databases', value)}
-                min={0}
                 max={calculateRemaining('databases')}
                 remaining={calculateRemaining('databases')}
               />
