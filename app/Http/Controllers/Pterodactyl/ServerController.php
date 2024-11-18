@@ -61,6 +61,9 @@ class ServerController extends Controller
         $servers = $user_id 
             ? $this->pterodactylService->getUserServers($user_id)
             : $this->pterodactylService->getAllServers();
+            
+        // Convert null to empty array
+        $servers = $servers ?? [];
 
         $executionTime = (microtime(true) - $startTime) * 1000;
 

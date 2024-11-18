@@ -131,6 +131,49 @@ class PlanController extends Controller
     }
 
     /**
+     * Handle the purchase of a plan.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $planId
+     * @return \Illuminate\Http\Response
+     */
+    public function purchase(Request $request, $planId)
+    {
+        // Retrieve the plan by ID
+        $plan = Plan::find($planId);
+
+        if (!$plan) {
+            return redirect()->back()->withErrors(['error' => 'Plan not found.']);
+        }
+
+        // Check if the plan has a 'redirect' URL
+        if ($plan->redirect && filter_var($plan->redirect, FILTER_VALIDATE_URL)) {
+            Log::info("Redirecting user to external URL for plan ID: {$planId}");
+
+            return redirect()->away($plan->redirect);
+        }
+
+        // Continue with the standard purchase process
+        try {
+            // Example: Charge the user, create subscription, etc.
+            // Replace the following lines with your actual purchase logic
+
+            // Assume $user is the authenticated user
+            $user = $request->user();
+
+            // Example: Create a subscription
+            // $subscription = $user->subscriptions()->create([...]);
+
+            Log::info("User ID {$user->id} purchased plan ID {$planId}");
+
+            return redirect()->route('plans.success')->with('status', 'Plan purchased successfully.');
+        } catch (\Exception $e) {
+            Log::error("Purchase failed for plan ID {$planId}: " . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'Failed to purchase the plan. Please try again.']);
+        }
+    }
+
+    /**
      * Update the specified plan in storage.
      */
     public function update(Request $request, Plan $plan)

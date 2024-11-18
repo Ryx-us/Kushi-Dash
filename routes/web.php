@@ -24,13 +24,14 @@ use App\Http\Controllers\DiscordSettingsController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\EarningController;
+use App\Http\Controllers\WebhookController;
 
 
 
 
 
 
-
+Route::post('/payment/api/webhook', [WebhookController::class, 'handleTebexWebhook'])->name('webhooks.tebex');
 
 // Admins shit
 
@@ -179,9 +180,13 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::post('/admin/api/update-discord-settings', [DiscordSettingsController::class, 'update'])->name('discord.settings.update');
 });
 
+
+
 Route::middleware(['auth'])->group(function () {
     Route::get('/earn', [EarningController::class, 'earn'])->name('earn');
-    Route::post('/generate-linkvertise', [EarningController::class, 'generateLinkvertiseLink'])->name('generate.linkvertise');
+    Route::get('/user/plans/purchase/{planId}', [PlanController::class, 'purchase'])
+    ->name('plans.purchase');
+    Route::get('/client/api/plans', [PlanController::class, 'apiIndex'])->name('plans.api.Index');
 });
 
 
