@@ -98,16 +98,16 @@ export default function DisplayServer({ className = '' }) {
         }
 
         const serverUrl = `${pterodactyl_URL}`;
-        console.log(servers.identifier)
+        //console.log (servers.identifier)
         window.open(serverUrl, '_blank');
     };
 
     if (isLoading) {
         return (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-5">
                 {[...Array(6)].map((_, index) => (
                     <Card key={index}>
-                        <CardHeader><Skeleton className="h-6 w-36" /></CardHeader>
+                        <CardHeader><Skeleton className="h-6 w-26" /></CardHeader>
                         <CardContent><Skeleton className="h-4 w-full mb-2" /></CardContent>
                         <CardFooter className="flex justify-end">
                             <Skeleton className="h-4 w-16" />
@@ -124,7 +124,7 @@ export default function DisplayServer({ className = '' }) {
     <Card>
         <CardContent className="p-6 flex flex-col items-center justify-center space-y-4">
             <img 
-                src="/empty.svg" 
+                src="/Empty-pana.svg" 
                 alt="No Servers" 
                 className="w-80 h-80"
             />

@@ -1,16 +1,61 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.jsx";
 import ServerDisplay from "@/Pages/Dashboard/DisplayServer.jsx";
-import { Cog, Crown, User } from 'lucide-react'; // Using lucide-react icons
+import { Cog, Crown, User } from 'lucide-react';
 import ResourcesView from './Common/Resources';
+import { Card, CardContent } from "@/components/ui/card";
+import SpinningGlobe from '@/components/SpinningGlobe';
+import axios from 'axios';
 
 export default function AdminDashboard() {
-    const { auth } = usePage().props; // Get auth user data from Inertia props\
+    const { auth } = usePage().props;
     const { darkMode } = usePage().props;
     const username = auth.user.name;
-    console.log(auth)
-    const userRank = auth.user.rank; // Assuming rank is passed in auth props
+    const userRank = auth.user.rank;
+    const pterodactylId = auth.user.pterodactyl_id;
+    const companyDesc = auth.companyDesc;
+
+    const [activeProjects, setActiveProjects] = useState(0);
+
+    useEffect(() => {
+        const fetchActiveProjects = async () => {
+            try {
+                const response = await axios.get(`/pterodactyl/servers/${pterodactylId}`);
+                setActiveProjects(response.data.servers.length);
+            } catch (error) {
+                console.error('Error fetching active projects:', error);
+            }
+        };
+
+        fetchActiveProjects();
+    }, [pterodactylId]);
+
+    const getRankBadge = () => {
+        switch (userRank) {
+            case 'admin':
+                return (
+                    <span className="px-2 py-1 rounded-full text-xs bg-red-500 text-white flex items-center">
+                        <Cog className="mr-1 h-4 w-4" />
+                        Admin
+                    </span>
+                );
+            case 'premium':
+                return (
+                    <span className="px-2 py-1 rounded-full text-xs bg-green-500 text-white flex items-center">
+                        <Crown className="mr-1 h-4 w-4" />
+                        Premium
+                    </span>
+                );
+            default:
+                return (
+                    <span className="px-2 py-1 rounded-full text-xs bg-zinc-500 text-white flex items-center">
+                        <User className="mr-1 h-4 w-4" />
+                        Hobby tier
+                    </span>
+                );
+        }
+    };
 
     return (
         <AuthenticatedLayout
@@ -23,45 +68,45 @@ export default function AdminDashboard() {
         >
             <Head title="Dashboard" />
 
-            <div className="relative h-[100px] w-full mb-6">
-                <img
-                    src="https://static.vecteezy.com/system/resources/previews/000/549/665/non_2x/abstract-background-dark-and-black-overlaps-004-vector.jpg"
-                    alt="Welcome to Dashboard"
-                    className="absolute inset-0 w-full h-full object-cover rounded-lg"
-                />
-                <div className="absolute inset-0 flex items-center p-5">
-                    <h1 className="text-4xl font-bold text-gray-200">
-                        Welcome back {username} 👋
-                        <span className="ml-2">
-                            {userRank === 'admin' ? (
-                                <span className="px-1.5 py-0.5 rounded-full text-xs bg-red-500 text-white flex items-center max-w-24">
-                                    <Cog className="mr-1 h-4 w-4" />
-                                    Admin
-                                </span>
-                            ) : userRank === 'premium' ? (
-                                <span className="px-1.5 py-0.5 rounded-full text-xs bg-green-500 text-white flex items-center max-w-24">
-                                    <Crown className="mr-1 h-4 w-4" />
-                                    Premium
-                                </span>
-                            ) : (
-                                <span className="px-1.5 py-0.5 rounded-full text-xs bg-zinc-500 text-white flex items-center max-w-24">
-                                    <User className="mr-1 h-4 w-4" />
-                                    Hobby tier
-                                </span>
-                            )}
-                        </span>
-                    </h1>
-                </div>
-            </div>
+            <Card className="w-full mb-6 overflow-hidden">
+                <CardContent className="p-0">
+                    <div className="relative h-[200px] w-full">
+                        <div className="absolute inset-0 bg-gradient-to-r from-zinc-400 to-stone-00 dark:from-purple-800 dark:to-zinc-800 opacity-80" />
+                        <img
+                            src="https://cdn.dribbble.com/users/2433051/screenshots/4872252/media/93fa4ea6accf793c6c64b4d7f20786ac.gif"
+                            alt="Dashboard Banner"
+                            className="absolute inset-0 w-full h-full object-cover mix-blend-overlay"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-between p-6">
+                            <div className="flex items-center space-x-4">
+                                
+                                <div>
+                                    <h1 className="text-3xl font-bold font-doto text-white mb-2">
+                                        Welcome back, {username}!
+                                    </h1>
+                                    <div className="flex items-center space-x-2">
+                                        {getRankBadge()}
+                                        <span className="text-white text-sm">{companyDesc}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="hidden md:flex items-center space-x-4">
+                               
+                                <div className="text-white text-right">
+                                    <p className="text-2xl font-semibold font-doto">{activeProjects}</p>
+                                    <p className="text-xl font-bold font-doto">Active Project(s)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
-            <ResourcesView/>
-
-           
+            <ResourcesView />
 
             <ServerDisplay />
-
-            
 
         </AuthenticatedLayout>
     );
 }
+

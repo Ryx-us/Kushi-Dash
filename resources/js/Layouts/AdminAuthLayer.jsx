@@ -24,7 +24,9 @@ import {
     LucideBadgeDollarSign,
     LucideCircleDollarSign,
     X,
-    LucideIdCard
+    LucideIdCard,
+    LucideUser,
+    LucideUserX2
 } from 'lucide-react';
 import ApplicationLogo from '@/components/ApplicationLogo';
 import { Button } from '@/components/ui/button';
@@ -158,7 +160,7 @@ export default function AdminAuthLayer({ header, children, sidebartab }) {
     };
 
     return (
-        <div className="flex h-screen w-screen bg-white dark:bg-zinc-950">
+        <div className="flex h-screen w-screen bg-zinc-400 dark:bg-zinc-950">
             {isFirstVisit && <Confetti />}
             
             {/* Sidebar */}
@@ -212,12 +214,7 @@ export default function AdminAuthLayer({ header, children, sidebartab }) {
                                 />
                             </MenuSection>
                             <MenuSection title="Plans & Users">
-                                <MenuItem
-                                    icon={Settings}
-                                    label="User Management"
-                                    href="/admin/users"
-                                    isActive={sidebartab === 'users'}
-                                />
+                                
                                 <MenuItem
                                     icon={LucideDollarSign}
                                     label="Plan Management"
@@ -235,6 +232,12 @@ export default function AdminAuthLayer({ header, children, sidebartab }) {
                                     label="System Settings"
                                     href="/admin/settings"
                                     isActive={sidebartab === 'settings'}
+                                />
+                                <MenuItem
+                                    icon={LucideUserX2}
+                                    label="User Management"
+                                    href="/admin/users"
+                                    isActive={sidebartab === 'users'}
                                 />
                             </MenuSection>
                             <MenuSection title="Revenue & Analytics">

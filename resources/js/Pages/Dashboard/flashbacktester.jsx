@@ -13,7 +13,7 @@ export default function FlashbackTester({ className = '' }) {
         get(`/admin/api/users`, {
             onSuccess: (page) => {
                 if (page.props.flash) {
-                    console.log('Response from server fetch:', page.props.flash); // interia flash back is now here
+                    //console.log ('Response from server fetch:', page.props.flash); // interia flash back is now here
                     setFlashMessage(page.props.flash);
                 } else {
                     console.error('No servers found in the response');

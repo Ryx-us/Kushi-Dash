@@ -61,7 +61,7 @@ const PlanForm = () => {
         
         try {
             await post('/admin/plans/store', requiredData);
-            console.log('Data:', requiredData);
+            //console.log ('Data:', requiredData);
             reset();
         } catch (error) {
             console.error('An error occurred while submitting the form.');

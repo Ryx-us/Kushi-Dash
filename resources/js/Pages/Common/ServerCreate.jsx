@@ -72,18 +72,18 @@ export default function ServerCreate() {
 
   useEffect(() => {
     if (!Array.isArray(locations) || locations.length === 0) {
-      console.log('No locations available');
+      //console.log ('No locations available');
       return;
     }
 
     const checkPing = async (location) => {
       if (!location.latencyurl) {
-        console.log('No latency URL for location:', location.name);
+        //console.log ('No latency URL for location:', location.name);
         return;
       }
 
       try {
-        console.log('Checking ping for:', location.name);
+        //console.log ('Checking ping for:', location.name);
         const measurements = [];
 
         // Take 3 measurements
@@ -106,8 +106,8 @@ export default function ServerCreate() {
             .reduce((a, b) => a + b, 0) / 2 // Average
         );
 
-        console.log('Latency measurements:', measurements);
-        console.log('Final latency:', latency);
+        //console.log ('Latency measurements:', measurements);
+        //console.log ('Final latency:', latency);
 
         setPingResults((prev) => ({
           ...prev,

@@ -9,8 +9,8 @@ import EmptyState from './NotFound';
 const Products = ({ plansINTERSIA = [] }) => {
     const [plans, setPlans] = useState([]);
 
-    console.log('Raw plans data:', plans);
-    console.log('Structured plans:', plans.map(plan => ({
+    //console.log ('Raw plans data:', plans);
+    //console.log ('Structured plans:', plans.map(plan => ({
         id: plan.id,
         name: plan.name,
         price: plan.price,

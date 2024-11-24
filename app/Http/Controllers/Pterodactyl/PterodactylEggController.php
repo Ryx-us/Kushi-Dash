@@ -23,25 +23,43 @@ class PterodactylEggController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'EggID' => 'required|string|max:255',
-            'nestId' => 'nullable|string|max:255',
-            'imageUrl' => 'nullable|string|max:255',
-            'icon' => 'nullable|string|max:255',
-            'additional_environmental_variables' => 'nullable|array',
-        ]);
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'description' => 'nullable|string',
+        'EggID' => 'required|string|max:255',
+        'nestId' => 'nullable|string|max:255',
+        'imageUrl' => 'nullable|string|max:255',
+        'icon' => 'nullable|string|max:255',
+        'additional_environmental_variables' => 'nullable|array',
+        'plans' => 'required|array',
+    ]);
 
-        $eggcreation_status = PterodactylEggs::create($request->all());
+    Log::info('Creating new egg with data:', ['request' => $request->all()]);
+
+    try {
+        $egg = PterodactylEggs::create($request->all());
+        
+
+        Log::info('Egg created successfully:', ['egg' => $egg]);
 
         return redirect()->route('admin.eggs.new')->with([
-            'res' => $eggcreation_status ? 'Egg created successfully.' : 'Failed to create egg.',
-            'type' => $eggcreation_status ? 'success' : 'error',
-            'status' => $eggcreation_status ? 'success' : 'error'
+            'res' => 'Egg created successfully.',
+            'type' => 'success',
+            'status' => 'success'
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Failed to create egg:', ['error' => $e->getMessage()]);
+
+        return redirect()->route('admin.eggs.new')->with([
+            'res' => 'Failed to create egg: ' . $e->getMessage(),
+            'type' => 'error',
+            'status' => 'error'
         ]);
     }
+}
+    
 
     public function getEggInfo($id)
 {
@@ -126,7 +144,7 @@ class PterodactylEggController extends Controller
         try {
             $egg->delete();
             Log::info('Egg deleted successfully:', ['egg' => $egg]);
-            return Inertia::render('AdminAppSettings', [
+            return redirect()->route('admin.eggs.index')->with([
                 'status' => 'success',
                 'message' => 'Egg deleted successfully.',
                 'resources' => [], // Add your resources here
@@ -135,7 +153,7 @@ class PterodactylEggController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to delete egg:', ['error' => $e->getMessage()]);
-            return Inertia::render('AdminAppSettings', [
+            return redirect()->route('admin.eggs.index')->with([
                 'status' => 'error',
                 'message' => 'Failed to delete egg.',
                 'resources' => [], // Add your resources here
@@ -151,3 +169,4 @@ class PterodactylEggController extends Controller
         return response()->json($eggs);
     }
 }
+

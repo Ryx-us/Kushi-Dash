@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { LucideLoader2, CheckCircle2, MapPin } from "lucide-react";
 import EmptyState from '../Common/NotFound';
+import { Label } from "@/components/ui/label"
+
 import CreateNew from '@/components/CreateNew';
 
 const LocationsView = () => {

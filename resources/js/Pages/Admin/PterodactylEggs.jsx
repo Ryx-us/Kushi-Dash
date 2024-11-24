@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { MultiSelect } from '@/components/ui/multi-select';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
@@ -16,15 +17,18 @@ const EggForm = ({ egg = {} }) => {
         EggID: egg.EggID || '',
         imageUrl: egg.imageUrl || '',
         icon: egg.icon || '',
-        additional_environmental_variables: egg.additional_environmental_variables || [] // Ensure this is always an array
+        additional_environmental_variables: egg.additional_environmental_variables || [], // Ensure this is always an array
+        plans: egg.plans || [] // Add plans to form data
     });
 
     const { flash } = usePage().props;
     const [flashMessage, setFlashMessage] = useState(null);
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+    const [plans, setPlans] = useState([]); // New state for plans
+    const [selectedPlans, setSelectedPlans] = useState(data.plans);
 
     useEffect(() => {
-        console.log('Flash object:', flash); // Log the flash object to inspect its contents
+        //console.log ('Flash object:', flash); // Log the flash object to inspect its contents
         if (flash.status) {
             setFlashMessage({ message: flash.res, type: flash.status });
             if (flash.status === 'success') {
@@ -35,6 +39,38 @@ const EggForm = ({ egg = {} }) => {
             }
         }
     }, [flash]);
+
+    useEffect(() => {
+        const fetchPlans = async () => {
+            try {
+                const response = await fetch('/client/api/plans');
+                const plansData = await response.json();
+                //console.log (plansData.plans)
+                setPlans(plansData.plans);
+            } catch (error) {
+                console.error('Failed to fetch plans:', error);
+            }
+        };
+        fetchPlans();
+    }, []);
+
+    
+
+    const planOptions = plans.map(plan => ({
+        value: plan.id.toString(),
+        label: plan.name
+    }));
+
+    
+
+    const handlePlanChange = (selected) => {
+        const selectedPlans = selected.map(item => ({
+            id: parseInt(item.value),
+            name: item.label
+        }));
+        setSelectedPlans(selectedPlans);
+        setData('plans', selectedPlans);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -175,6 +211,23 @@ const EggForm = ({ egg = {} }) => {
                                 <p className="text-sm text-red-500">{errors.icon}</p>
                             )}
                         </div>
+
+                        <div className="space-y-2">
+                <Label htmlFor="plans">Select Plans</Label>
+                <MultiSelect
+                    id="plans"
+                    options={planOptions}
+                    value={planOptions.filter(option => 
+                        data.plans.some(plan => plan.id.toString() === option.value)
+                    )}
+                    onChange={handlePlanChange}
+                    placeholder="Select plans"
+                    className={errors.plans ? 'border-red-500' : 'text-black'}
+                />
+                {errors.plans && (
+                    <p className="text-sm text-red-500">{errors.plans}</p>
+                )}
+            </div>
 
                         <div className="space-y-2">
                             <Label htmlFor="additional_environmental_variables">Additional Environmental Variables</Label>

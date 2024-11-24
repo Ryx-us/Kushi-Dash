@@ -5,14 +5,14 @@ import ServerDisplay from "@/Pages/Dashboard/DisplayServer.jsx";
 import { Cog, Crown, User } from 'lucide-react'; // Using lucide-react icons
 import ServerCreate from '../Common/ServerCreate';
 import Earn from '../Common/EarnCom';
+import Wheelin from '../Common/EarnWheel';
 
 export default function AdminDashboard() {
     const { auth } = usePage().props; // Get auth user data from Inertia props\
     const { darkMode } = usePage().props;
     const username = auth.user.name;
-    console.log(auth)
-    const userRank = auth.user.rank; // Assuming rank is passed in auth props
-
+    //console.log (auth)
+    const userRank = auth.user.rank; 
     return (
         <AuthenticatedLayout
             header={
@@ -41,7 +41,14 @@ export default function AdminDashboard() {
            
 
             <Earn/>
-            
+           
         </AuthenticatedLayout>
     );
 }
+
+/* 
+
+Long comment to be removed later
+*/
+
+

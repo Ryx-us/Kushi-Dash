@@ -17,7 +17,7 @@ export default function AdminDashboard() {
                     Home / Products
                 </h2>
             }
-            sidebartab="home"
+            sidebartab="products"
         >
             <Head title="Dashboard" />
 

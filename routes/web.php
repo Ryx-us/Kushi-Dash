@@ -60,6 +60,7 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     
     Route::get('/deploy', [ServerController::class, 'create'])->name('servers.create');
     Route::post('/servers', [ServerController::class, 'store'])->name('servers.store');
+    
 
     
     
@@ -70,8 +71,14 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::get('/admin/locations', [LocationController::class, 'Viewindex'])->name('locations.Viewindex');
     Route::get('/admin/locations/new', [LocationController::class, 'Viewcreate'])->name('locations.Viewcreate');
     Route::post('/admin/api/locations', [LocationController::class, 'store'])->name('locations.store');
-    Route::get('/admin/api/locations/{location}', [LocationController::class, 'show'])->name('locations.show');
+    
     Route::delete('/admin/api/locations/{location}', [LocationController::class, 'destroy'])->name('locations.destroy');
+    Route::get('/admin/locations/edit/{locationId}', [LocationController::class, 'Viewedit'])
+        ->name('locations.Viewedit');
+
+    // Handle the update request
+    Route::put('/admin/locations/{locationId}', [LocationController::class, 'update'])
+        ->name('locations.update');
 
 
     Route::get('/admin/users', function () {
@@ -184,11 +191,13 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/earn', [EarningController::class, 'earn'])->name('earn');
+    Route::post('/generate-linkvertise', [EarningController::class, 'generateLinkvertiseLink'])->name('generate.linkvertise');
     Route::get('/user/plans/purchase/{planId}', [PlanController::class, 'purchase'])
     ->name('plans.purchase');
-    Route::get('/client/api/plans', [PlanController::class, 'apiIndex'])->name('plans.api.Index');
+    
 });
-
+Route::get('/admin/api/locations/{location}', [LocationController::class, 'show'])->name('locations.show');
+Route::get('/client/api/plans', [PlanController::class, 'apiIndex'])->name('plans.api.Index');
 
 // Load additional authentication routes
 require __DIR__.'/auth.php';

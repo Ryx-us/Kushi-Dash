@@ -74,7 +74,7 @@ const CreateLocation = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const locationData = getLocationData();
-    console.log('Submitting location data:', locationData);
+    //console.log ('Submitting location data:', locationData);
     post(route('locations.store'), locationData);
   };
 

@@ -12,7 +12,7 @@ import { Loader2, CheckCircle2 } from "lucide-react";
 export default function UpdatePterodactylSettings() {
     const { props } = usePage();
     const { pterodactylSettings = {} } = props; // Default to an empty object if secerts is undefined
-    console.log( pterodactylSettings.PTERODACTYL_API_KEY)
+    //console.log ( pterodactylSettings.PTERODACTYL_API_KEY)
     const { data, setData, post, processing, errors, reset } = useForm({
         PTERODACTYL_API_URL: pterodactylSettings.PTERODACTYL_API_URL || '',
         PTERODACTYL_API_KEY: pterodactylSettings.PTERODACTYL_API_KEY || '',

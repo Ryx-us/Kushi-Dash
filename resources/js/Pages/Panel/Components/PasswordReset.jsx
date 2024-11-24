@@ -29,7 +29,7 @@ export default function PasswordResetFormPterodactyl({ className = '' }) {
         put(route('pterodactyl.reset-password'), {
             onSuccess: (page) => {
                 if (page.props.flash.status) {
-                    console.log('Response from password reset:', page.props.flash.status);
+                    //console.log ('Response from password reset:', page.props.flash.status);
                     reset();
                     setIsPasswordUpdated(true);
                 } else {

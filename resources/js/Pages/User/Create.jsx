@@ -9,7 +9,7 @@ export default function AdminDashboard() {
     const { auth } = usePage().props; // Get auth user data from Inertia props\
     const { darkMode } = usePage().props;
     const username = auth.user.name;
-    console.log(auth)
+    //console.log (auth)
     const userRank = auth.user.rank; // Assuming rank is passed in auth props
 
     return (

@@ -33,6 +33,7 @@ return [
         'client_secret' => env('DISCORD_CLIENT_SECRET'),
         'redirect' => env('DISCORD_REDIRECT_URI'),
         'webhook_url' => env('DISCORD_WEBHOOK_URL'),
+        'web_state' => env('DISCORD_WEB_STATE', false),
     ],
 
     'slack' => [

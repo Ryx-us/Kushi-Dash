@@ -22,7 +22,8 @@ import {
     LucideMonitorUp,
     Coins,
     Crown,
-    X
+    X,
+    HammerIcon
 } from 'lucide-react'
 import ApplicationLogo from '@/components/ApplicationLogo'
 import { Button } from '@/components/ui/button'
@@ -107,7 +108,7 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
     }
 
     return (
-        <div className="flex h-screen w-screen bg-white dark:bg-zinc-950">
+        <div className="flex h-screen w-screen bg-zinc-400 dark:">
             {/* Sidebar */}
             <Card className={cn(
                 "fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out flex flex-col",
@@ -165,7 +166,7 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
                             icon={auth.user.rank === 'premium' ? Crown : UserIcon}
                             label="Profile"
                             href="/profile"
-                            isActive={sidebartab === 'products'}
+                            isActive={sidebartab === 'profile'}
                         />
                     </MenuSection>
 
@@ -185,7 +186,7 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
                         <div className="flex items-center justify-between px-3 py-2 text-sm">
                             <div className="flex items-center">
                                 <Coins className="h-4 w-4 mr-2"/>
-                                <span>Coins: {coins||0}</span>
+                                <span>Coins: {auth.user.coins||0}</span>
                             </div>
                         </div>
                         <DropdownMenu>
@@ -198,11 +199,13 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
                                     )}
                                 >
                                     {auth.user.rank === 'premium' ? (
-                                        <Crown className="mr-3 h-4 w-4 text-amber-500"/>
-                                    ) : (
-                                        <UserIcon className="mr-3 h-4 w-4"/>
-                                    )}
-                                    {auth.user.name}
+    <Crown className="mr-3 h-4 w-4 text-amber-500"/>
+) : auth.user.rank === 'admin' ? (
+    <HammerIcon className="mr-3 h-4 w-4 text-red-500 "/>
+) : (
+    <UserIcon className="mr-3 h-4 w-4"/>
+)}
+{auth.user.name}
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent

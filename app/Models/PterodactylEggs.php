@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class PterodactylEggs extends Model
 {
@@ -16,14 +17,21 @@ class PterodactylEggs extends Model
         'imageUrl',
         'nestId',
         'icon',
-        'additional_environmental_variables'
+        'additional_environmental_variables',
+        'plans'
     ];
 
     protected $casts = [
-            'additional_environmental_variables' => 'array', // Add this line so no sex with dogs
-        ];
+        'additional_environmental_variables' => 'array',
+        'plans' => 'array'
+    ];
 
-    public static $requiredPlans = [
+    
+
+    /**
+     * Default available plans
+     */
+    public static $availablePlans = [
         'basic',
         'premium',
         'enterprise'
