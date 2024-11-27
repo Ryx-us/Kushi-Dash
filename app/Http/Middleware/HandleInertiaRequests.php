@@ -55,6 +55,8 @@ class HandleInertiaRequests extends Middleware
         'backups' => 0,
     ];
 
+    $shopPrices = config('shop.prices');
+
     if ($user && $user->pterodactyl_id) {
         try {
             $servers = $this->pterodactylService->getUserServers($user->pterodactyl_id);
@@ -133,6 +135,18 @@ class HandleInertiaRequests extends Middleware
     return array_merge(parent::share($request), [
         'auth' => [
             'user' => $user
+        ],
+        'shop' => [
+            'prices' => $shopPrices,
+            'userCoins' => $user ? $user->coins : 0,
+            'maxPurchaseAmounts' => [
+                'cpu' => config('shop.max_cpu', 69),
+                'memory' => config('shop.max_memory', 4096),
+                'disk' => config('shop.max_disk', 10240),
+                'databases' => config('shop.max_databases', 5),
+                'allocations' => config('shop.max_allocations', 5),
+                'backups' => config('shop.max_backups', 5),
+            ],
         ],
         'totalResources' => $totalResources,
         'linkvertiseEnabled' => config('linkvertise.enabled'),

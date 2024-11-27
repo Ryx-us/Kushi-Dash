@@ -194,6 +194,7 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/earn', [EarningController::class, 'earn'])->name('earn');
     Route::post('/generate-linkvertise', [EarningController::class, 'generateLinkvertiseLink'])->name('generate.linkvertise');
+    Route::post('/shop/purchase', [UserController::class, 'purchaseResource']);
 
         Route::get('/dashboard/servers/edit/{serverId}', [ServerController::class, 'edit'])->name('server.edit');
     Route::get('/user/plans/purchase/{planId}', [PlanController::class, 'purchase'])

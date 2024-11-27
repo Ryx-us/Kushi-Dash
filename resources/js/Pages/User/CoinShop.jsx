@@ -15,31 +15,24 @@ export default function AdminDashboard() {
         <AuthenticatedLayout
             header={
                 <h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-                    Home / Products
+                    Home / Coin-Shop
                 </h2>
             }
-            sidebartab="products"
+            sidebartab="coinshop"
         >
             <Head title="Dashboard" />
 
             <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-black">
                 <div className="text-gray-900 dark:text-gray-100 text-xl">
-                   Coin Shop
+                   Choose from our wide range of products 😎
                 </div>
             </div>
 
 
             <Shop/>
 
-            <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-black mt-5">
-                <div className="text-gray-900 dark:text-gray-100 text-xl">
-                   Plans & Products
-                </div>
-            </div>
 
-
-            <Products/>
-
+           
 
 
         </AuthenticatedLayout>

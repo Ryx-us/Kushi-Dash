@@ -23,7 +23,9 @@ import {
     Coins,
     Crown,
     X,
-    HammerIcon
+    HammerIcon,
+    LucideCoins,
+    LucideShoppingBag
 } from 'lucide-react'
 import ApplicationLogo from '@/components/ApplicationLogo'
 import { Button } from '@/components/ui/button'
@@ -149,8 +151,8 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
 
                     <MenuSection title="PRODUCTS">
                         <MenuItem
-                            icon={Box}
-                            label="Products"
+                            icon={LucideShoppingBag}
+                            label="Shop"
                             href="/plans"
                             isActive={sidebartab === 'products'}
                         />
@@ -160,6 +162,7 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
                             href="/earn"
                             isActive={sidebartab === 'earn'}
                         />
+                        
                     </MenuSection>
                     <MenuSection title="USER">
                         <MenuItem

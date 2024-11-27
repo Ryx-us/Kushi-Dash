@@ -10,15 +10,7 @@ const Products = ({ plansINTERSIA = [] }) => {
     const [plans, setPlans] = useState([]);
 
     //console.log ('Raw plans data:', plans);
-    //console.log ('Structured plans:', plans.map(plan => ({
-        id: plan.id,
-        name: plan.name,
-        price: plan.price,
-        resources: plan.resources,
-        discount: plan.discount,
-        planType: plan.planType
-    })));
-
+    
     useEffect(() => {
         const fetchPlans = async () => {
             try {

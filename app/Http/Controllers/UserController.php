@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
@@ -18,6 +21,125 @@ class UserController extends Controller
             'users' => $users // Passing the users to the Inertia view
         ]);
     }
+
+    public function purchaseResource(Request $request)
+{
+    try {
+        $request->validate([
+            'resource' => 'required|string|in:cpu,memory,disk,databases,allocations,backups,servers',
+            'quantity' => 'required|integer|min:1'
+        ]);
+
+        $user = $request->user();
+        $resource = $request->input('resource');
+        $quantity = $request->input('quantity');
+        
+        // Get prices from config
+        $prices = config('shop.prices');
+        $maxLimits = [
+            'cpu' => config('shop.max_cpu'),
+            'memory' => config('shop.max_memory'),
+            'disk' => config('shop.max_disk'),
+            'databases' => config('shop.max_databases'),
+            'allocations' => config('shop.max_allocations'),
+            'backups' => config('shop.max_backups'),
+            'servers' => config('shop.max_servers')
+        ];
+
+        if (!isset($prices[$resource])) {
+            throw ValidationException::withMessages([
+                'resource' => 'Invalid resource type'
+            ]);
+        }
+
+        if (!$prices[$resource]['enabled']) {
+            throw ValidationException::withMessages([
+                'resource' => 'This resource is currently disabled'
+            ]);
+        }
+
+        $amount = $prices[$resource]['amount'] * $quantity;
+        $cost = $prices[$resource]['cost'] * $quantity;
+        
+        // Check if user has enough coins
+        if ($user->coins < $cost) {
+            throw ValidationException::withMessages([
+                'coins' => 'Insufficient coins'
+            ]);
+        }
+
+        // Check if purchase would exceed max limits
+        $currentValue = $user->limits[$resource] ?? 0;
+        $newTotal = $currentValue + $amount;
+
+        Log::info('Purchase validation:', [
+            'user' => $user->id,
+            'resource' => $resource,
+            'current_value' => $currentValue,
+            'amount' => $amount,
+            'new_total' => $newTotal,
+            'max_limit' => $maxLimits[$resource]
+        ]);
+
+        if ($newTotal > $maxLimits[$resource]) {
+            throw ValidationException::withMessages([
+                'quantity' => 'Purchase would exceed maximum limit'
+            ]);
+        }
+
+        // Process purchase in transaction
+        DB::transaction(function () use ($user, $resource, $amount, $cost) {
+            // Deduct coins
+            $user->coins -= $cost;
+            
+            // Update limits
+            $limits = $user->limits;
+            $limits[$resource] = ($limits[$resource] ?? 0) + $amount;
+            $user->limits = $limits;
+            
+            $user->save();
+        });
+
+        // Send message to Discord webhook
+        $webhookUrl = env('DISCORD_WEBHOOK');
+        $message = "User {$user->name} successfully purchased {$amount} {$resource} for {$cost} coins.";
+        $response = Http::post($webhookUrl, [
+            'content' => $message
+        ]);
+
+        if ($response->successful()) {
+            Log::info('Purchase successful:', [
+                'user' => $user->id,
+                'resource' => $resource,
+                'amount' => $amount,
+                'cost' => $cost
+            ]);
+            return back()->with('status', 'Success: Successfully purchased ' . $amount . ' ' . $resource);
+        } else {
+            Log::warning('Purchase successful but failed to send Discord notification:', [
+                'user' => $user->id,
+                'resource' => $resource,
+                'amount' => $amount,
+                'cost' => $cost
+            ]);
+            return back()->with('status', 'Success: Purchase successful, but failed to send Discord notification');
+        }
+
+    } catch (ValidationException $e) {
+        Log::error('Validation failed:', [
+            'user' => $request->user()->id,
+            'errors' => $e->errors()
+        ]);
+        return back()->with('status', 'A really nasty Error happened');
+    } catch (\Exception $e) {
+        Log::error('Purchase failed:', [
+            'user' => $request->user()->id,
+            'error' => $e->getMessage()
+        ]);
+
+        return back()->with('status', 'Failed to process purchase');
+    }
+}
 
     // GET request: Return a specific user by ID as JSON
     public function show($id)
