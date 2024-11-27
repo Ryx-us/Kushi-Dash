@@ -32,7 +32,11 @@ class EarningController extends Controller
             $user->save();
 
             
-            return back()->with('success', 'You have earned ' . $coinReward . ' coins!');
+            return Inertia::render('User/Earn', [
+                'linkvertiseEnabled' => env('LINKVERTISE_ENABLED', false),
+                'linkvertiseId' => env('LINKVERTISE_ID', 'default_id'),
+                'status' => 'Success',
+            ]);
         }
 
         // Log the Linkvertise configuration values directly from .env

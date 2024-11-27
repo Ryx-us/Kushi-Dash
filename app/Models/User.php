@@ -82,4 +82,10 @@ class User extends Authenticatable
     {
         return $this->rank === 'admin';
     }
+
+    public function hasEnoughAllocations($requestedPorts = 1)
+{
+    $availableAllocations = $this->limits['allocations'] - $this->resources['allocations'];
+    return $availableAllocations >= $requestedPorts; // Simplified check
+}
 }

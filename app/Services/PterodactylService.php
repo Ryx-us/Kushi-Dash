@@ -64,6 +64,24 @@ class PterodactylService
         }
     }
 
+    public function getServerDetails($serverId)
+{
+    try {
+        Log::info("Fetching details for server ID: {$serverId}");
+
+        $response = $this->client->getAsync("/api/application/servers/{$serverId}")->wait();
+
+        if ($response->getStatusCode() !== 200) {
+            Log::error('Failed to fetch server details: ' . $response->getBody());
+            throw new \Exception('Failed to fetch server details: ' . $response->getBody());
+        }
+
+        return json_decode($response->getBody(), true);
+    } catch (\Exception $e) {
+        Log::error("Error fetching server details: " . $e->getMessage());
+        throw $e;
+    }
+}
 
     public function getRandomUnassignedAllocation($nodeId)
 {
@@ -236,6 +254,7 @@ class PterodactylService
 
 
 
+
     public function updateUserDetails($userId, $details)
     {
         $userDetails = $this->getUserDetails($userId);
@@ -255,6 +274,30 @@ class PterodactylService
 
         return json_decode($response->getBody(), true)['attributes'];
     }
+
+    public function updateServerBuild($serverId, array $build)
+{
+    try {
+        Log::info("Updating server build for server ID: {$serverId}", $build);
+
+        $response = $this->client->patchAsync("/api/application/servers/{$serverId}/build", [
+            'json' => $build
+        ])->wait();
+
+        if ($response->getStatusCode() !== 200) {
+            Log::error('Failed to update server build: ' . $response->getBody());
+            throw new \Exception('Failed to update server build: ' . $response->getBody());
+        }
+
+        return json_decode($response->getBody(), true);
+    } catch (\Exception $e) {
+        Log::error("Error updating server build: " . $e->getMessage());
+        throw $e;
+    }
+}
+
+    //START FROM HERE
+    
 
     public function getLocationDetails($locationId)
 {

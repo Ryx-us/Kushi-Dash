@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import { useForm, usePage } from '@inertiajs/react'
+import React, { useEffect, useState, } from 'react'
+import { useForm, usePage, router } from '@inertiajs/react'
 import axios from 'axios'
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -33,7 +33,7 @@ export default function DisplayServer({ className = '' }) {
 
   
 
-    
+    console.log(usePage().props.flash.res)
 
     useEffect(() => {
         hotReloadApi().then(fetchServers)
@@ -62,6 +62,11 @@ export default function DisplayServer({ className = '' }) {
             }
         })
     }
+
+    const handleEdit = (serverId) => {
+        const editUrl = `/dashboard/servers/edit/${serverId}`;
+        window.open(editUrl, '_blank');
+    };
 
     const fetchEggData = async (eggId) => {
         try {
@@ -99,6 +104,16 @@ export default function DisplayServer({ className = '' }) {
 
         const serverUrl = `${pterodactyl_URL}`;
         //console.log (servers.identifier)
+        window.open(serverUrl, '_blank');
+    };
+
+    const handleExternalEditClick = (serverId) => {
+        if (!serverId) {
+            console.error('Server ID is not defined.');
+            return;
+        }
+    
+        const serverUrl = `/dashboard/servers/edit/${serverId}`;
         window.open(serverUrl, '_blank');
     };
 
@@ -150,6 +165,7 @@ export default function DisplayServer({ className = '' }) {
                 const { attributes } = server
                 const egg = eggData[attributes.egg]
                 const { status, suspended, limits, feature_limits } = attributes
+                
 
                 let backgroundClass = ''
                 if (status === 'installing') {
@@ -202,7 +218,7 @@ export default function DisplayServer({ className = '' }) {
                             <div className="flex items-center space-x-2">
                                 <div className="w-2 h-2 rounded-full bg-green-400" />
                                 <span className="text-sm text-gray-300">
-                                    Node {attributes.node}
+                                    Location {attributes.node}
                                 </span>
                             </div>
 
@@ -217,9 +233,9 @@ export default function DisplayServer({ className = '' }) {
                         </CardContent>
 
                         <CardFooter className="justify-end space-x-2 bg-black/50 backdrop-blur-sm">
-                            <Button variant="ghost" size="icon">
-                                <Pencil className="h-4 w-4" />
-                            </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(attributes.id)}>
+    <Pencil className="h-4 w-4" />
+</Button>
                             <Button variant="ghost" size="icon" onClick={handleExternalLinkClick}>
                 <ExternalLink className="h-4 w-4" />
             </Button>

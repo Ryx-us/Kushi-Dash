@@ -98,9 +98,16 @@ class ServerController extends Controller
         ]);
     }
 
+    
+
+    
+
     public function store(Request $request, PterodactylService $pterodactylService)
 {
     try {
+
+        Log::error('Incoming server creation request:', $request->all());
+
         // Get user data with rank check
         $user = User::where('discord_id', $request->user()->discord_id)->first();
         if (!$user->pterodactyl_id) {
@@ -135,11 +142,20 @@ class ServerController extends Controller
 
         // Get random node
         $randomNode = $locationDetails['nodes'][array_rand($locationDetails['nodes'])];
-        
+
         // Get allocation
         $allocation = $pterodactylService->getRandomUnassignedAllocation($randomNode['id']);
         if (!$allocation) {
             return back()->with('status', 'Error: No available ports in this location');
+        }
+
+        // Validate requested ports
+        $requestedPorts = $request->allocations ?? 1; // Default to 1 port
+
+        // Check if user has enough allocations for all ports (1 default + additional)
+        if (!$user->hasEnoughAllocations($requestedPorts + 1)) {
+            $available = $user->limits['allocations'] - $user->resources['allocations'];
+            return back()->with('status', "Error: Not enough allocation slots. Need: " . ($requestedPorts) . ", Available: " . $available);
         }
 
         // Calculate remaining resources
@@ -160,8 +176,13 @@ class ServerController extends Controller
             'disk' => $request->disk,
             'databases' => $request->databases ?? 0,
             'backups' => $request->backups ?? 0,
-            'allocations' => $request->allocations ?? 1
+            'allocations' => $requestedPorts // Set requested ports
         ];
+
+        // Check if there are server slots left
+        if ($remaining['servers'] < 1) {
+            return back()->with('status', "Error: No Server Slots left :(");
+        }
 
         foreach ($requested as $resource => $amount) {
             if ($amount > $remaining[$resource]) {
@@ -223,6 +244,7 @@ class ServerController extends Controller
             'feature_limits' => [
                 'databases' => (int) ($request->databases ?? 0),
                 'backups' => (int) ($request->backups ?? 0),
+                'allocations' => (int) $requestedPorts // Set requested ports
             ],
             'allocation' => [
                 'default' => $allocation['id'],
@@ -233,9 +255,7 @@ class ServerController extends Controller
 
         $server = $pterodactylService->createServer($serverPayload);
 
-        // Create server
-        
-
+        // Update user resources
         $user->resources = [
             'cpu' => $user->resources['cpu'] + $request->cpu,
             'memory' => $user->resources['memory'] + $request->memory,
@@ -243,13 +263,13 @@ class ServerController extends Controller
             'servers' => $user->resources['servers'] + 1,
             'databases' => $user->resources['databases'] + ($request->databases ?? 0),
             'backups' => $user->resources['backups'] + ($request->backups ?? 0),
-            'allocations' => $user->resources['allocations'] + ($request->allocations ?? 1)
+            'allocations' => $user->resources['allocations'] + $requestedPorts // Update with total ports used
         ];
 
         $user->save();
 
         $serverUrl = env('PTERODACTYL_API_URL') . '/server/' . $server['attributes']['identifier'];
-        
+
         return back()->with([
             'status' => 'Success: Your server has been successfully created',
             'server_url' => $serverUrl,
@@ -259,6 +279,103 @@ class ServerController extends Controller
     } catch (\Exception $e) {
         Log::error('Server creation failed: ' . $e->getMessage());
         return back()->with('status', 'Error: Unable to create server at this time. Please try again later.');
+    }
+}
+
+
+public function update(Request $request, PterodactylService $pterodactylService, $serverId)
+{
+    try {
+        // Log the incoming request data
+        Log::info('Incoming server update request:', $request->all());
+
+        // Get user data with rank check
+        $user = User::where('discord_id', $request->user()->discord_id)->first();
+        if (!$user->pterodactyl_id) {
+            return back()->with('status', 'Error: Your account is not properly linked');
+        }
+
+        // Fetch current server details
+        $serverDetails = $pterodactylService->getServerDetails($serverId);
+        if (!$serverDetails) {
+            return back()->with('status', 'Error: Unable to fetch server details');
+        }
+
+        // Calculate the new resource usage
+        $newMemory = $request->input('memory', $serverDetails['attributes']['limits']['memory']);
+        $newCpu = $request->input('cpu', $serverDetails['attributes']['limits']['cpu']);
+        $newDisk = $request->input('disk', $serverDetails['attributes']['limits']['disk']);
+        $newDatabases = $request->input('databases', $serverDetails['attributes']['feature_limits']['databases']);
+        $newAllocations = $request->input('allocations', $serverDetails['attributes']['feature_limits']['allocations']);
+        $newBackups = $request->input('backups', $serverDetails['attributes']['feature_limits']['backups']);
+
+        // Check if the new resource usage surpasses the user's limits
+        if (
+            $newMemory > $user->limits['memory'] ||
+            $newCpu > $user->limits['cpu'] ||
+            $newDisk > $user->limits['disk'] ||
+            $newDatabases > $user->limits['databases'] ||
+            $newAllocations > $user->limits['allocations'] ||
+            $newBackups > $user->limits['backups']
+        ) {
+            return back()->with('status', 'Error: Surpasses User resources');
+        }
+
+        // Prepare the build payload
+        $build = [
+            'allocation' => $serverDetails['attributes']['allocation'], // Keep the same allocation
+            'memory' => $newMemory,
+            'swap' => $serverDetails['attributes']['limits']['swap'], // Keep the same swap
+            'disk' => $newDisk,
+            'io' => $serverDetails['attributes']['limits']['io'], // Keep the same IO
+            'cpu' => $newCpu,
+            'threads' => $serverDetails['attributes']['limits']['threads'], // Keep the same threads
+            'feature_limits' => [
+                'databases' => $newDatabases,
+                'allocations' => $newAllocations,
+                'backups' => $newBackups,
+            ]
+        ];
+
+        // Update the server build
+        $updatedServer = $pterodactylService->updateServerBuild($serverId, $build);
+
+        Log::info('Server updated successfully:', $updatedServer);
+
+        return back()->with('status', 'Success: Your server has been successfully updated');
+    } catch (\Exception $e) {
+        Log::error('Server update failed: ' . $e->getMessage());
+        return back()->with('status', 'Error: Unable to update server at this time. Please try again later.');
+    }
+}
+
+
+    //sister leviing
+
+    
+public function edit($serverId, PterodactylService $pterodactylService)
+{
+    try {
+        // Fetch current server details
+        $serverDetails = $pterodactylService->getServerDetails($serverId);
+        if (!$serverDetails) {
+            return back()->with('status', 'Error: Unable to fetch server details');
+        }
+
+        // Get the authenticated user
+        $user = auth()->user();
+
+        // Check if the server belongs to the user
+        if ($serverDetails['attributes']['user'] != $user->pterodactyl_id) {
+            return redirect('/dashboard')->with('status', 'Error: This server is not yours');
+        }
+
+        return Inertia::render('User/ServerEdit', [
+            'server' => $serverDetails['attributes']
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Failed to fetch server details: ' . $e->getMessage());
+        return back()->with('status', 'Error: Unable to fetch server details at this time. Please try again later.');
     }
 }
 }

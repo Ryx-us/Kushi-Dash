@@ -134,7 +134,7 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
                     <MenuSection title="COMPUTING">
                         <MenuItem
                             icon={LucideMonitorUp}
-                            label="deploy"
+                            label="Deploy"
                             href="/deploy"
                             isActive={sidebartab === 'deploy'}
                         />

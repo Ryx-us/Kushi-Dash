@@ -25,6 +25,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/pterodactyl/servers/{server_id}/delete', [ServerController::class, 'deleteServer'])
     ->name('pterodactyl.servers.delete');
 
+    Route::put('/pterodactyl/reset-password', [ResetPassword::class, 'resetPassword'])->name('pterodactyl.reset-password');
+
 // Keep the general servers route
 Route::get('/pterodactyl/servers', [ServerController::class, 'getServers'])
     ->name('pterodactyl.get-servers');

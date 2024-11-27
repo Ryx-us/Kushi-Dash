@@ -22,7 +22,9 @@ export default function ServerCreate() {
   const [pingResults, setPingResults] = useState({});
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
+  
   const { flash } = usePage().props;
+  const isError = flash?.status?.includes('Error');
 
   const { data, setData, post, processing, errors } = useForm({
     name: '',
@@ -42,14 +44,16 @@ export default function ServerCreate() {
     setShowSuccessDialog(false);
     router.visit('/dashboard');
   };
-  const handleErrorClose = () => {
-    setShowErrorDialog(false);
-  };
+
 
   const handleAccessServer = () => {
     if (flash.server_url) {
       window.open(flash.server_url, '_blank');
     }
+  };
+
+  const handleErrorClose = () => {
+    setShowErrorDialog(false);
   };
 
   const calculateRemaining = (resource) => {
@@ -60,15 +64,13 @@ export default function ServerCreate() {
 
   useEffect(() => {
     if (flash?.status) {
-      // Check if it's an error message
-      if (flash.error) {
+      if (isError) {
         setShowErrorDialog(true);
       } else {
-        // Show success dialog for non-error status messages
         setShowSuccessDialog(true);
       }
     }
-  }, [flash]);
+  }, [flash?.status, isError]);
 
   useEffect(() => {
     if (!Array.isArray(locations) || locations.length === 0) {
@@ -373,44 +375,44 @@ export default function ServerCreate() {
         </Button>
       </div>
 
-      <AlertDialog open={showSuccessDialog} onOpenChange={handleSuccessClose}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-6 w-6 text-green-500" />
-              Success!
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-base">
-              {flash?.status || 'Your server has been created successfully!'}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex gap-2">
-            <AlertDialogAction onClick={handleSuccessClose}>Continue</AlertDialogAction>
-            {flash?.server_url && (
-              <Button onClick={handleAccessServer} variant="outline">
-                Access Server
-              </Button>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <AlertDialog open={!isError && showSuccessDialog} onOpenChange={handleSuccessClose}>
+                <AlertDialogContent className="max-w-md">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                            <CheckCircle2 className="h-6 w-6 text-green-500" />
+                            Success!
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-base">
+                            {flash?.status || 'Your server has been created successfully!'}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex gap-2">
+                        <AlertDialogAction onClick={handleSuccessClose}>Continue</AlertDialogAction>
+                        {flash?.server_url && (
+                            <Button onClick={handleAccessServer} variant="outline">
+                                Access Server
+                            </Button>
+                        )}
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
-      <AlertDialog open={showErrorDialog} onOpenChange={handleErrorClose}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <XCircle className="h-6 w-6 text-red-500" />
-              Error
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-base">
-              {flash?.status || 'Failed to create server. Please try again.'}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={handleErrorClose}>Close</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            <AlertDialog open={showErrorDialog} onOpenChange={handleErrorClose}>
+                <AlertDialogContent className="max-w-md rounded-lg shadow-lg shadow-orange-950">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                            <XCircle className="h-6 w-6 text-red-500" />
+                            Error
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-base">
+                            {flash?.status || 'Failed to create server. Please try again.'}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogAction onClick={handleErrorClose}>Close</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
     </form>
   );
 }

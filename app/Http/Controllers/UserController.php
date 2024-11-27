@@ -21,10 +21,29 @@ class UserController extends Controller
 
     // GET request: Return a specific user by ID as JSON
     public function show($id)
-    {
+{
+    try {
         $user = User::findOrFail($id);
+        
         return response()->json($user);
+       
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'User not found'
+        ], 404);
+    } catch (\Exception $e) {
+        Log::error('Error fetching user:', [
+            'id' => $id,
+            'error' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Internal server error'
+        ], 500);
     }
+}
 
     public function showClient(Request $request, $id)
 {

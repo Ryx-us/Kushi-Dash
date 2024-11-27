@@ -101,6 +101,8 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::put('/admin/plans/{plan}', [PlanController::class, 'update'])->name('plans.update');
     Route::delete('/admin/plans/{plan}', [PlanController::class, 'destroy'])->name('admin.plans.destroy');
     Route::get('/admin/api/plans', [PlanController::class, 'apiIndex'])->name('plans.api.Index');
+    Route::post('/server/{serverId}/update', [ServerController::class, 'update'])->name('server.update');
+
     
 });
 
@@ -192,6 +194,8 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/earn', [EarningController::class, 'earn'])->name('earn');
     Route::post('/generate-linkvertise', [EarningController::class, 'generateLinkvertiseLink'])->name('generate.linkvertise');
+
+        Route::get('/dashboard/servers/edit/{serverId}', [ServerController::class, 'edit'])->name('server.edit');
     Route::get('/user/plans/purchase/{planId}', [PlanController::class, 'purchase'])
     ->name('plans.purchase');
     

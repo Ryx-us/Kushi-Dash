@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { usePage, router } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'react-toastify';
 import {
@@ -11,12 +11,13 @@ import {
   AlertDialogFooter,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Loader } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 
 export default function Earn() {
-  const { flash, linkvertiseEnabled } = usePage().props;
+  const { flash, linkvertiseEnabled, status } = usePage().props;
   const [showSuccess, setShowSuccess] = useState(false);
   const [coinAmount, setCoinAmount] = useState(0);
   const [showCaptcha, setShowCaptcha] = useState(false);
@@ -46,7 +47,12 @@ export default function Earn() {
     if (!showCaptcha) {
       setCaptchaError('');
     }
-  }, [flash, showCaptcha]);
+
+    // Show success modal if status is 'Success'
+    if (status === 'Success') {
+      setShowSuccess(true);
+    }
+  }, [flash, showCaptcha, status]);
 
   const generateCaptcha = () => {
     const operations = ['+', '-', 'x', '/'];
@@ -111,15 +117,23 @@ export default function Earn() {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-4">Earn Coins</h1>
-      {flash.success && <div className="alert alert-success">{flash.success}</div>}
-      {flash.error && <div className="alert alert-error">{flash.error}</div>}
-      <p className="mb-6">Click the button below to earn coins through Linkvertise.</p>
-      {linkvertiseEnabled ? (
-        <Button onClick={handleEarnClick}>Earn Coins</Button>
-      ) : (
-        <p>Linkvertise is currently disabled.</p>
-      )}
+      <Card className="max-w-full mx-auto">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold">Earn Coins</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {flash.success && <div className="alert alert-success">{flash.success}</div>}
+          {flash.error && <div className="alert alert-error">{flash.error}</div>}
+          <p className="">Click the button below to earn coins through Linkvertise.</p>
+        </CardContent>
+        <CardFooter>
+          {linkvertiseEnabled ? (
+            <Button onClick={handleEarnClick}>Earn Coins</Button>
+          ) : (
+            <p>Linkvertise is currently disabled.</p>
+          )}
+        </CardFooter>
+      </Card>
 
       {/* Success Modal */}
       <AlertDialog open={showSuccess} onOpenChange={setShowSuccess}>
@@ -130,7 +144,7 @@ export default function Earn() {
               Success!
             </AlertDialogTitle>
             <AlertDialogDescription className="text-base">
-              Coins <strong>{coinAmount}</strong> claimed successfully.
+              You have successfully earned coins!
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -170,6 +184,9 @@ export default function Earn() {
             <AlertDialogAction onClick={handleCaptchaSubmit} disabled={isLoading}>
               {isLoading ? 'Loading...' : 'Submit'}
             </AlertDialogAction>
+            <Button onClick={() => setShowCaptcha(false)} variant="outline">
+              Close
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -177,11 +194,13 @@ export default function Earn() {
       {/* Loading Overlay */}
       {isLoading && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="dark:bg-black  p-6 rounded-lg shadow-lg text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-lg font-semibold">Loading...</p>
-            <p>Please wait while we generate your Linkvertise link.</p>
-          </div>
+          <Card className="p-6 rounded-lg shadow-lg text-center">
+            <Loader className="animate-spin h-12 w-12 text-blue-500 mx-auto mb-4" />
+            <CardTitle className="text-lg font-semibold">Loading...</CardTitle>
+            <CardContent>
+              <p>Please wait while we generate your Linkvertise link.</p>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
