@@ -24,7 +24,7 @@ export default function AdminDashboard() {
 
             <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-black">
                 <div className="text-gray-900 dark:text-gray-100 text-xl">
-                   Choose from our wide range of products 😎
+                   Coin Shop
                 </div>
             </div>
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { usePage } from '@inertiajs/react';
+import { usePage, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'react-toastify';
 import {
@@ -17,7 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 
 export default function Earn() {
-  const { flash, linkvertiseEnabled, status } = usePage().props;
+  const { flash, linkvertiseEnabled, status, auth } = usePage().props;
   const [showSuccess, setShowSuccess] = useState(false);
   const [coinAmount, setCoinAmount] = useState(0);
   const [showCaptcha, setShowCaptcha] = useState(false);
@@ -96,6 +96,7 @@ export default function Earn() {
   const handleCaptchaSubmit = () => {
     if (parseInt(userAnswer) === captcha.answer) {
       setIsLoading(true);
+      setShowCaptcha(false);
       router.post(route('generate.linkvertise'), {}, {
         onSuccess: () => {
           setShowCaptcha(false);
@@ -124,7 +125,7 @@ export default function Earn() {
         <CardContent>
           {flash.success && <div className="alert alert-success">{flash.success}</div>}
           {flash.error && <div className="alert alert-error">{flash.error}</div>}
-          <p className="">Click the button below to earn coins through Linkvertise.</p>
+          <p className="">Click the button below to earn coins through Linkvertise. (We recommend you try your best to ignore the ads)</p>
         </CardContent>
         <CardFooter>
           {linkvertiseEnabled ? (

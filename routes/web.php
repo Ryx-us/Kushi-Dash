@@ -163,6 +163,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/plans', [PlanController::class, 'Userindex'])->name('plans.Userindex');
     Route::get('client/api/users/{id}', [UserController::class, 'showClient']);
+    Route::get('/shop', [PlanController::class, 'Userindexcoins'])->name('plans.Userindexcoins');
 });
 
 Route::middleware(['auth', AdminMiddleware::class])->group(function () {

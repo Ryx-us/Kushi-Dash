@@ -18,6 +18,36 @@ class PlanController extends Controller
         return Inertia::render('AdminPlans', ['plans' => $plans]);
     }
 
+    public function Userindexcoins()
+{
+    try {
+        $plans = Plan::all();
+        
+        // Debug logging
+        Log::info('Fetched plans:', [
+            'count' => $plans->count(),
+            'plans' => $plans->toArray()
+        ]);
+
+        // Check if plans exist
+        if ($plans->isEmpty()) {
+            Log::warning('No plans found');
+        }
+
+        return Inertia::render('User/CoinShop', [
+            'plans' => $plans,
+            'debug' => true // Add this to check in frontend
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Error fetching plans: ' . $e->getMessage());
+        return Inertia::render('User/Plans', [
+            'plans' => [],
+            'error' => 'Failed to load plans'
+        ]);
+    }
+}
+
     public function Userindex()
 {
     try {

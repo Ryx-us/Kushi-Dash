@@ -53,7 +53,7 @@ class User extends Authenticatable
                     'servers' => env('INITIAL_SERVERS', 1),
                     'databases' => env('INITIAL_DATABASES', 0),
                     'backups' => env('INITIAL_BACKUPS', 0),
-                    'allocations' => env('INITIAL_ALLOCATIONS', 0),
+                    'allocations' => env('INITIAL_ALLOCATIONS', 2),
                 ];
                 $user->save();
             }

@@ -130,7 +130,7 @@ class UserController extends Controller
             'user' => $request->user()->id,
             'errors' => $e->errors()
         ]);
-        return back()->with('status', 'A really nasty Error happened');
+        return back()->with('status', 'ERROR: Do you have enough coins? If not this might be our problem');
     } catch (\Exception $e) {
         Log::error('Purchase failed:', [
             'user' => $request->user()->id,
