@@ -102,7 +102,7 @@ class UserController extends Controller
 
         // Send message to Discord webhook
         $webhookUrl = env('DISCORD_WEBHOOK');
-        $message = "User {$user->name} successfully purchased {$amount} {$resource} for {$cost} coins.";
+        $message = " ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️ User {$user->name} successfully purchased {$amount} {$resource} for {$cost} coins. /n Please check if there is abuse ```{$user->discord_id}```";
         $response = Http::post($webhookUrl, [
             'content' => $message
         ]);

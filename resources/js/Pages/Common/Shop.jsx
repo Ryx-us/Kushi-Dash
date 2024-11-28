@@ -101,8 +101,8 @@ export default function Shop() {
                     <p className="text-sm text-muted-foreground">
                         Available Coins: {auth.user.coins}
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                        Servers: {auth.user.servers || 0}
+                    <p className="text-sm text-red-500 font-bold">
+                        You cannot refund any purchases made in the shop.
                     </p>
                 </CardHeader>
                 <CardContent>
