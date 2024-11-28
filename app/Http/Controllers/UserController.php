@@ -102,10 +102,49 @@ class UserController extends Controller
 
         // Send message to Discord webhook
         $webhookUrl = env('DISCORD_WEBHOOK');
-        $message = " ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️ User {$user->name} successfully purchased {$amount} {$resource} for {$cost} coins. /n Please check if there is abuse ```{$user->discord_id}```";
-        $response = Http::post($webhookUrl, [
-            'content' => $message
-        ]);
+
+        
+        $message = [
+            'embeds' => [
+                [
+                    'title' => 'Purchase Notification',
+                    'description' => "User **{$user->name}** successfully purchased **{$amount} {$resource}** for **{$cost} coins**.",
+                    'color' => 0x00FF00, // Green color for success
+                    'fields' => [
+                        [
+                            'name' => 'User ID',
+                            'value' => $user->id,
+                            'inline' => true
+                        ],
+                        [
+                            'name' => 'Discord ID',
+                            'value' => $user->discord_id,
+                            'inline' => true
+                        ],
+                        [
+                            'name' => 'Resource',
+                            'value' => $resource,
+                            'inline' => true
+                        ],
+                        [
+                            'name' => 'Amount',
+                            'value' => $amount,
+                            'inline' => true
+                        ],
+                        [
+                            'name' => 'Cost',
+                            'value' => $cost,
+                            'inline' => true
+                        ]
+                    ],
+                    'footer' => [
+                        'text' => 'Please check if there is abuse, Kushi Dash logs v0.1'
+                    ]
+                ]
+            ]
+        ];
+        
+        $response = Http::post($webhookUrl, $message);
 
         if ($response->successful()) {
             Log::info('Purchase successful:', [
