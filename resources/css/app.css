@@ -4,7 +4,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Doto:wght@100..900&display=swap');
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: #000000;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
@@ -84,3 +84,6 @@
     @apply bg-background text-foreground;
   }
 }
+
+
+

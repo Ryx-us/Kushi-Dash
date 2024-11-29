@@ -111,10 +111,10 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
     }
 
     return (
-        <div className="flex h-screen w-screen bg-zinc-400 dark:">
+        <div className="flex h-screen w-screen bg-zinc-400 rounded-md dark:">
             {/* Sidebar */}
             <Card className={cn(
-                "fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out flex flex-col",
+                "fixed inset-y-0 left-0 z-50 rounded-none w-64 transform transition-transform duration-300 ease-in-out flex flex-col",
                 "lg:relative lg:translate-x-0",
                 isSidebarOpen ? "translate-x-0" : "-translate-x-full"
             )}>
@@ -154,7 +154,7 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
                         <MenuItem
                             icon={LucideShoppingBag}
                             label="Shop"
-                            href="/plan"
+                            href="/plans"
                             isActive={sidebartab === 'products'}
                         />
 

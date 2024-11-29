@@ -125,4 +125,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'company_logo_url' => env('COMPANY_LOGO_URL', 'default_favicon_url'),
+
 ];

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { LucideCheckCircle, LucideX } from 'lucide-react';
+import { CoinsIcon, Database, HardDrive, LucideArchive, LucideCheckCircle, LucideCoins, LucideCpu, LucideMemoryStick, LucideNetwork, LucideServer, LucideX } from 'lucide-react';
 
 export default function Shop() {
     const { auth, shop, flash } = usePage().props;
@@ -41,11 +41,17 @@ export default function Shop() {
     }, [flash]);
 
     const resourceTypes = {
-        infrastructure: ['servers'],
-        performance: ['cpu', 'memory'],
-        storage: ['disk', 'backups'],
-        networking: ['allocations'],
-        database: ['databases']
+        infrastructure: [{ name: 'servers', icon: LucideServer }],
+        performance: [
+            { name: 'cpu', icon: LucideCpu },
+            { name: 'memory', icon: LucideMemoryStick }
+        ],
+        storage: [
+            { name: 'disk', icon: HardDrive },
+            { name: 'backups', icon: LucideArchive}
+        ],
+        networking: [{ name: 'allocations', icon: LucideNetwork }],
+        database: [{ name: 'databases', icon: Database }]
     };
 
     const resourceDisplayNames = {
@@ -94,11 +100,12 @@ export default function Shop() {
     };
 
     return (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-1 mt-3">
             <Card className='max-w-full'>
                 <CardHeader>
                     <h2 className="text-lg font-semibold">Shop</h2>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                        <CoinsIcon className="h-4 w-4" />
                         Available Coins: {auth.user.coins}
                     </p>
                     <p className="text-sm text-red-500 font-bold">
@@ -108,43 +115,40 @@ export default function Shop() {
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
-                            <Label htmlFor="resource">Resource</Label>
-                            <Select
-                                value={data.resource}
-                                onValueChange={(value) => handleChange('resource', value)}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a resource" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {Object.entries(resourceTypes).map(([type, resources]) => (
-                                        <SelectGroup key={type}>
-                                            <SelectLabel className="capitalize">{type}</SelectLabel>
-                                            {resources.map((resource) => (
-                                                <SelectItem
-                                                    key={resource}
-                                                    value={resource}
-                                                    disabled={isResourceDisabled(resource)}
-                                                >
-                                                    <span className="flex justify-between w-full">
-                                                        <span>{resourceDisplayNames[resource]}</span>
-                                                        {isResourceDisabled(resource) && (
-                                                            <span className="text-xs text-muted-foreground">
-                                                                ({getDisabledReason(resource)})
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectGroup>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Label>Select Resource</Label>
+                            <div className="grid grid-cols-2 gap-3">
+                                {Object.entries(resourceTypes).map(([type, resources]) => (
+                                    <React.Fragment key={type}>
+                                        {resources.map((resource) => (
+                                            <div
+                                                key={resource.name}
+                                                className={`
+                                                    p-3 border rounded-lg cursor-pointer transition-all
+                                                    ${data.resource === resource.name ? 'border-primary bg-primary/10' : 'border-border'}
+                                                    ${isResourceDisabled(resource.name) ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary'}
+                                                `}
+                                                onClick={() => !isResourceDisabled(resource.name) && handleChange('resource', resource.name)}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <resource.icon className="h-5 w-5" />
+                                                    <span>{resourceDisplayNames[resource.name]}</span>
+                                                </div>
+                                                {isResourceDisabled(resource.name) && (
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                        {getDisabledReason(resource.name)}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </React.Fragment>
+                                ))}
+                            </div>
                             {errors.resource && (
                                 <p className="text-sm text-destructive">{errors.resource}</p>
                             )}
                         </div>
 
+                        {/* Keep existing quantity slider and input */}
                         <div className="space-y-4">
                             <Label htmlFor="quantity">Quantity</Label>
                             <div className="space-y-4">
@@ -172,14 +176,28 @@ export default function Shop() {
                         </div>
 
                         <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
+                            <div className="flex justify-between text-sm items-center">
                                 <span>Total Cost:</span>
-                                <span>{getPrice(data.resource, data.quantity)} coins</span>
+                                <span className="flex items-center gap-1">
+                                    <LucideCoins className="h-4 w-4" />
+                                    {getPrice(data.resource, data.quantity)} coins
+                                </span>
                             </div>
-                            <div className="flex justify-between text-sm">
-                                <span>Amount:</span>
-                                <span>{getAmount(data.resource, data.quantity)} {resourceDisplayNames[data.resource]}</span>
-                            </div>
+                            <div className="flex justify-between text-sm items-center">
+    <span>Amount:</span>
+    <span className="flex items-center gap-1">
+        {data.resource && (() => {
+            const resourceType = Object.keys(resourceTypes).find(type => 
+                resourceTypes[type].some(r => r.name === data.resource)
+            );
+            const ResourceIcon = resourceTypes[resourceType]?.find(r => 
+                r.name === data.resource
+            )?.icon;
+            return ResourceIcon && <ResourceIcon className="h-4 w-4" />;
+        })()}
+        {getAmount(data.resource, data.quantity)} {resourceDisplayNames[data.resource]}
+    </span>
+</div>
                         </div>
 
                         <Button 

@@ -188,6 +188,7 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
 Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::get('/admin/discord-settings', [DiscordSettingsController::class, 'show'])->name('discord.settings');
     Route::post('/admin/api/update-discord-settings', [DiscordSettingsController::class, 'update'])->name('discord.settings.update');
+    Route::get('/admin/plans/edit/{plan}', [PlanController::class, 'edit'])->name('plans.edit');
 });
 
 
@@ -196,8 +197,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/earn', [EarningController::class, 'earn'])->name('earn');
     Route::post('/generate-linkvertise', [EarningController::class, 'generateLinkvertiseLink'])->name('generate.linkvertise');
     Route::post('/shop/purchase', [UserController::class, 'purchaseResource']);
+   
 
-        Route::get('/dashboard/servers/edit/{serverId}', [ServerController::class, 'edit'])->name('server.edit');
+    Route::get('/dashboard/servers/edit/{serverId}', [ServerController::class, 'edit'])->name('server.edit');
     Route::get('/user/plans/purchase/{planId}', [PlanController::class, 'purchase'])
     ->name('plans.purchase');
     

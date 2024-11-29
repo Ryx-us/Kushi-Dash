@@ -86,6 +86,7 @@ class PlanController extends Controller
         $plans = Plan::all();
         return Inertia::render('AdminPlanCreate', ['plans' => $plans]);
     }
+    
 
     /**
      * Store a newly created plan in storage.
@@ -157,8 +158,12 @@ class PlanController extends Controller
      */
     public function edit(Plan $plan)
     {
-        return Inertia::render('Plans/Edit', ['plan' => $plan]);
+        return Inertia::render('AdminPlanEdit', [
+            
+            'plan' => $plan
+        ]);
     }
+    
 
     /**
      * Handle the purchase of a plan.
@@ -237,6 +242,8 @@ class PlanController extends Controller
             return redirect()->back()->with('error', 'Failed to update plan.');
         }
     }
+
+
 
     /**
      * Remove the specified plan from storage.
