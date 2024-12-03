@@ -11,7 +11,7 @@ import {
   AlertDialogFooter,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog';
-import { CheckCircle2, Loader } from 'lucide-react';
+import { CheckCircle2, Loader, LucideFileWarning } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
@@ -126,7 +126,8 @@ export default function Earn() {
           {flash.success && <div className="alert alert-success">{flash.success}</div>}
           {flash.error && <div className="alert alert-error">{flash.error}</div>}
           <p className="">Click the button below to earn coins through Linkvertise. (We recommend you try your best to ignore the ads)</p>
-          <p className="text-red-500 font-bold font-doto">Using bypassers won't earn you coins and will result in a report! Avoid Linkvertise as it provides minimal support to the community—choose fair methods to benefit everyone.</p>
+          {/*<LucideFileWarning/>*/}
+          <p className="text-red-500 font-bold font-doto mt-3">⚠️ Using bypassers won't earn you coins and will result in a report! Avoid Linkvertise as it provides minimal support to the community—choose fair methods to benefit everyone.</p>
         </CardContent>
         <CardFooter>
           {linkvertiseEnabled ? (
