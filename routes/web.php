@@ -62,7 +62,9 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::get('/deploy', [ServerController::class, 'create'])->name('servers.create');
     Route::post('/servers', [ServerController::class, 'store'])->name('servers.store');
 
-    Route::get('/storage/cdn/{filename}', [CDNController::class, 'getFiles'])->name('cdn.serve');
+    Route::get('/cdn/storage/blob/{filename}', [CDNController::class, 'serveFile'])->name('cdn.serve');
+
+    
     
 
     

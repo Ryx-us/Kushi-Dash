@@ -255,25 +255,58 @@ class PterodactylService
 
 
 
-    public function updateUserDetails($userId, $details)
-    {
+public function updateUserDetails($userId, $details)
+{
+    try {
+        Log::info('updateUserDetails: Method called.', ['userId' => $userId, 'details' => $details]);
+
         $userDetails = $this->getUserDetails($userId);
+        Log::info('updateUserDetails: Retrieved user details.', ['userDetails' => $userDetails]);
 
         $updateData = array_merge($userDetails, $details);
+        Log::info('updateUserDetails: Merged update data.', ['updateData' => $updateData]);
 
         $response = $this->client->patchAsync("/api/application/users/{$userId}", [
             'json' => $updateData
         ])->wait();
 
         if ($response->getStatusCode() !== 200) {
-            Log::error('Failed to update user details: ' . $response->getBody());
-            throw new \Exception('Failed to update user details: ' . $response->getBody());
+            Log::error('updateUserDetails: Failed to update user details.', [
+                'statusCode' => $response->getStatusCode(),
+                'responseBody' => $response->getBody()->getContents()
+            ]);
+            throw new \Exception('Failed to update user details: ' . $response->getBody()->getContents());
         }
 
-        Log::info('User details updated successfully: ' . $response->getBody());
+        Log::info('updateUserDetails: User details updated successfully.', [
+            'responseBody' => $response->getBody()->getContents()
+        ]);
 
         return json_decode($response->getBody(), true)['attributes'];
+    } catch (\GuzzleHttp\Exception\ClientException $e) {
+        Log::error('ClientException in updateUserDetails: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString(),
+            'response' => $e->getResponse() ? $e->getResponse()->getBody()->getContents() : 'No response body'
+        ]);
+        throw $e;
+    } catch (\GuzzleHttp\Exception\ServerException $e) {
+        Log::error('ServerException in updateUserDetails: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString(),
+            'response' => $e->getResponse() ? $e->getResponse()->getBody()->getContents() : 'No response body'
+        ]);
+        throw $e;
+    } catch (\GuzzleHttp\Exception\ConnectException $e) {
+        Log::error('ConnectException in updateUserDetails: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString()
+        ]);
+        throw $e;
+    } catch (\Exception $e) {
+        Log::error('Exception in updateUserDetails: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString()
+        ]);
+        throw $e;
     }
+}
 
     public function updateServerBuild($serverId, array $build)
 {
@@ -352,3 +385,5 @@ class PterodactylService
 
 
 }
+
+

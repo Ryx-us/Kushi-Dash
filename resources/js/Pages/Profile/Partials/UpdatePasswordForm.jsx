@@ -2,92 +2,81 @@ import InputError from '@/components/InputError';
 import InputLabel from '@/components/InputLabel';
 import PrimaryButton from '@/components/PrimaryButton';
 import TextInput from '@/components/TextInput';
-import { Transition } from '@headlessui/react';
-import { useForm } from '@inertiajs/react';
-import { useRef } from 'react';
+import GuestLayout from '@/Layouts/GuestLayout';
+import { Head, useForm, usePage } from '@inertiajs/react';
 
-export default function UpdatePasswordForm({ className = '' }) {
-    const passwordInput = useRef();
+export default function ResetPassword({ email }) {
+    const { auth } = usePage().props;
+    const pterodactylId = auth?.user?.pterodactyl_id;
 
-    const {
-        data,
-        setData,
-        errors,
-        put,
-        reset,
-        processing,
-        recentlySuccessful,
-    } = useForm({
+    const { data, setData, post, processing, errors, reset } = useForm({
         password: '',
         password_confirmation: '',
+        userId: pterodactylId,
     });
 
-    const updatePassword = (e) => {
+    const submit = (e) => {
         e.preventDefault();
 
-        put(route('password.update'), {
-            preserveScroll: true,
-            onSuccess: () => reset(),
-            onError: (errors) => {
-                if (errors.password) {
-                    reset('password', 'password_confirmation');
-                    passwordInput.current.focus();
-                }
-            },
+        post(route('password.store'), {
+            onFinish: () => reset('password', 'password_confirmation'),
         });
     };
 
     return (
-        <div className={`p-6 bg-white dark:bg-black rounded-lg shadow-md ${className}`}>
-            <header>
-                <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                    Update Password
-                </h2>
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    Ensure your account is using a long, random password to stay secure.
-                </p>
-            </header>
-            <form onSubmit={updatePassword} className="mt-6 space-y-6">
-                <div>
-                    <InputLabel htmlFor="password" value="New Password" />
+        <GuestLayout>
+            <Head title="Reset Password" />
+
+            <form onSubmit={submit}>
+               
+
+                <div className="mt-4">
+                    <InputLabel htmlFor="password" value="Password" />
+
                     <TextInput
                         id="password"
-                        ref={passwordInput}
-                        value={data.password}
-                        onChange={(e) => setData('password', e.target.value)}
                         type="password"
-                        className="mt-1 block w-full bg-white text-black dark:bg-black dark:text-white"
+                        name="password"
+                        value={data.password}
+                        className="mt-1 block w-full"
                         autoComplete="new-password"
+                        isFocused={true}
+                        onChange={(e) => setData('password', e.target.value)}
                     />
+
                     <InputError message={errors.password} className="mt-2" />
                 </div>
-                <div>
-                    <InputLabel htmlFor="password_confirmation" value="Confirm Password" />
-                    <TextInput
-                        id="password_confirmation"
-                        value={data.password_confirmation}
-                        onChange={(e) => setData('password_confirmation', e.target.value)}
-                        type="password"
-                        className="mt-1 block w-full bg-white text-black dark:bg-black dark:text-white"
-                        autoComplete="new-password"
+
+                <div className="mt-4">
+                    <InputLabel
+                        htmlFor="password_confirmation"
+                        value="Confirm Password"
                     />
-                    <InputError message={errors.password_confirmation} className="mt-2" />
+
+                    <TextInput
+                        type="password"
+                        id="password_confirmation"
+                        name="password_confirmation"
+                        value={data.password_confirmation}
+                        className="mt-1 block w-full"
+                        autoComplete="new-password"
+                        onChange={(e) =>
+                            setData('password_confirmation', e.target.value)
+                        }
+                    />
+
+                    <InputError
+                        message={errors.password_confirmation}
+                        className="mt-2"
+                    />
                 </div>
-                <div className="flex items-center gap-4">
-                    <PrimaryButton disabled={processing}>Save</PrimaryButton>
-                    <Transition
-                        show={recentlySuccessful}
-                        enter="transition ease-in-out"
-                        enterFrom="opacity-0"
-                        leave="transition ease-in-out"
-                        leaveTo="opacity-0"
-                    >
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Saved.
-                        </p>
-                    </Transition>
+
+                <div className="mt-4 flex items-center justify-end">
+                    <PrimaryButton className="ms-4" disabled={processing}>
+                        Reset Password
+                    </PrimaryButton>
                 </div>
             </form>
-        </div>
+        </GuestLayout>
     );
 }

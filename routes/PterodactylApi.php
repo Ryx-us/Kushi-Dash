@@ -16,20 +16,26 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Middleware\AdminMiddleware;
 use App\Http\Controllers\Pterodactyl\PterodactylEggController;
 
-
-
 Route::middleware('auth')->group(function () {
     Route::match(['get', 'post'], '/pterodactyl/servers/{user_id}', [ServerController::class, 'getServers'])
-    ->name('pterodactyl.get-server-by-user');
+        ->name('pterodactyl.get-server-by-user');
 
     Route::delete('/pterodactyl/servers/{server_id}/delete', [ServerController::class, 'deleteServer'])
-    ->name('pterodactyl.servers.delete');
+        ->name('pterodactyl.servers.delete');
 
-    Route::put('/pterodactyl/reset-password', [ResetPassword::class, 'resetPassword'])->name('pterodactyl.reset-password');
+    
 
-// Keep the general servers route
-Route::get('/pterodactyl/servers', [ServerController::class, 'getServers'])
-    ->name('pterodactyl.get-servers');
+    // Keep the general servers route
+    Route::get('/pterodactyl/servers', [ServerController::class, 'getServers'])
+        ->name('pterodactyl.get-servers');
     Route::post('/pterodactyl/servers', [ServerController::class, 'getServers'])
-    ->name('pterodactyl.get-servers');
+        ->name('pterodactyl.get-servers');
 });
+
+Route::middleware('auth')->group(function () {
+    
+});
+
+Route::put('/pterodactyl/reset-password', [ResetPassword::class, 'resetPassword'])
+    ->name('pterodactyl.reset-password')
+    ->middleware(['auth']); // Make sure route has auth middleware

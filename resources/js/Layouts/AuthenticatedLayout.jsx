@@ -28,7 +28,8 @@ import {
     LucideShoppingBag,
     LucideHandCoins,
     CogIcon,
-    LucideSlidersVertical
+    LucideSlidersVertical,
+    LucideKeySquare
 } from 'lucide-react'
 import ApplicationLogo from '@/components/ApplicationLogo'
 import { Button } from '@/components/ui/button'
@@ -158,7 +159,7 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
                         />
                         
                         <MenuItem
-                            icon={LucideLock}
+                            icon={LucideKeySquare}
                             label="Control Panel"
                             href="/panel"
                             isActive={sidebartab === 'customers'}

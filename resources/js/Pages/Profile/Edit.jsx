@@ -1,9 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
 import DeleteUserForm from './Partials/DeleteUserForm';
-import UpdatePasswordForm from './Partials/UpdatePasswordForm';
+
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
 import PterodactylAccountContainer from "@/Pages/Profile/Partials/PterodactylAccountContainer.jsx";
+import PasswordResetFormPterodactyl from '../Panel/Components/PasswordReset';
+
 
 export default function Edit({ mustVerifyEmail, status }) {
     return (
@@ -28,7 +30,7 @@ export default function Edit({ mustVerifyEmail, status }) {
 
 
 
-                    <UpdatePasswordForm className="max-w-xl" />
+                    {/*<PasswordResetFormPterodactyl/>*/}
                     <PterodactylAccountContainer className="max-w-xl" />
 
 

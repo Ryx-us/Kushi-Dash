@@ -19,6 +19,19 @@ class ResetPassword extends Controller
 
     public function resetPassword(Request $request)
     {
+        Log::debug('Reset password endpoint hit', [
+            'request_data' => $request->except(['password', 'password_confirmation']),
+            'method' => $request->method()
+        ]);
+    
+        // Rest of your code...
+        Log::info('Password reset request received', [
+            'userId' => $request->userId,
+            'has_password' => !empty($request->password),
+            'ip' => $request->ip(),
+            'timestamp' => now(),
+        ]);
+
         $request->validate([
             'password' => 'required|confirmed',
             'userId' => 'required|integer',

@@ -54,17 +54,18 @@ class CDNController extends Controller
     }
 
     public function getFiles()
-    {
-        $files = Storage::disk('public')->files('cdn');
-        return collect($files)->map(function($file) {
-            return [
-                'name' => basename($file),
-                'size' => Storage::disk('public')->size($file),
-                'url' => Storage::disk('public')->url($file),
-                'created_at' => Storage::disk('public')->lastModified($file)
-            ];
-        });
-    }
+{
+    $files = Storage::disk('public')->files('cdn');
+    return collect($files)->map(function($file) {
+        $filename = basename($file);
+        return [
+            'name' => $filename,
+            'size' => Storage::disk('public')->size($file),
+            'url' => '/cdn/storage/blob/' . $filename,
+            'created_at' => Storage::disk('public')->lastModified($file)
+        ];
+    });
+}
 
     private function getStorageMetrics()
     {
@@ -85,6 +86,22 @@ class CDNController extends Controller
             'percentUsed' => round(($totalUsed / $this->maxStorageLimit) * 100, 2)
         ];
     }
+
+    public function serveFile($filename)
+{
+    $path = 'cdn/' . $filename;
+    
+    if (!Storage::disk('public')->exists($path)) {
+        abort(404);
+    }
+
+    $file = Storage::disk('public')->path($path);
+    $mimeType = Storage::disk('public')->mimeType($path);
+
+    return response()->file($file, [
+        'Content-Type' => $mimeType
+    ]);
+}
 
     public function store(Request $request)
 {
