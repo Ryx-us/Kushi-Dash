@@ -25,7 +25,6 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\EarningController;
 use App\Http\Controllers\WebhookController;
-use App\Http\Controllers\VMsController;
 use App\Http\Controllers\CDNController;
 
 
@@ -62,9 +61,8 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     
     Route::get('/deploy', [ServerController::class, 'create'])->name('servers.create');
     Route::post('/servers', [ServerController::class, 'store'])->name('servers.store');
-    Route::get('/admin/cdn', [CDNController::class, 'index'])->name('cdn.index');
-    Route::post('/cdn/upload', [CDNController::class, 'store'])->name('cdn.store');
-    Route::delete('/cdn/{filename}', [CDNController::class, 'destroy'])->name('cdn.destroy');
+
+    Route::get('/storage/cdn/{filename}', [CDNController::class, 'getFiles'])->name('cdn.serve');
     
 
     
@@ -112,9 +110,6 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
 });
 
 
-Route::get('/storage/cdn/{filename}', [CDNController::class, 'getFiles'])->name('cdn.serve');
-
-
 //Public API routes to get normal stuff
 
 Route::get('/client/api/egg/{id}', [PterodactylEggController::class, 'show'])->name('admin.eggs.show');
@@ -129,7 +124,13 @@ Route::get('/admin/api/eggs', [PterodactylEggController::class, 'getAllEggs'])->
 Route::middleware([AdminMiddleware::class])->group(function () {
     Route::get('/admin/dashboard', [AdminDashboardController::class, 'index']);
 
+    Route::get('/admin/cdn', [CDNController::class, 'index'])->name('cdn.index');
+    Route::post('/cdn/upload', [CDNController::class, 'store'])->name('cdn.store');
+    Route::delete('/cdn/{filename}', [CDNController::class, 'destroy'])->name('cdn.destroy');
+
     // Other admin routes
+
+
 
 
 
@@ -169,7 +170,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    Route::get('/plans', [PlanController::class, 'Userindex'])->name('plans.Userindex');
+    Route::get('/plan', [PlanController::class, 'Userindex'])->name('plans.Userindex');
     Route::get('client/api/users/{id}', [UserController::class, 'showClient']);
     Route::get('/shop', [PlanController::class, 'Userindexcoins'])->name('plans.Userindexcoins');
 });
@@ -178,11 +179,6 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::get('/admin', function () {
         return Inertia::render('AdminDashboard');
     })->name('admin.dashboard');
-    Route::get('/admin/vm/create', [VMsController::class, 'create'])->name('admin.vms.create');
-    Route::get('/admin/vm', [VMsController::class, 'Userindex'])->name('admin.vms.index');
-    Route::post('/admin/vms/store', [VMsController::class, 'store'])->name('admin.vms.store');
-    Route::delete('/admin/vms/{id}', [VMsController::class, 'destroy'])
-    ->name('admin.vms.destroy');
 });
 
 
@@ -201,7 +197,6 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
 Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::get('/admin/discord-settings', [DiscordSettingsController::class, 'show'])->name('discord.settings');
     Route::post('/admin/api/update-discord-settings', [DiscordSettingsController::class, 'update'])->name('discord.settings.update');
-    Route::get('/admin/plans/edit/{plan}', [PlanController::class, 'edit'])->name('plans.edit');
 });
 
 
@@ -210,9 +205,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/earn', [EarningController::class, 'earn'])->name('earn');
     Route::post('/generate-linkvertise', [EarningController::class, 'generateLinkvertiseLink'])->name('generate.linkvertise');
     Route::post('/shop/purchase', [UserController::class, 'purchaseResource']);
-   
 
-    Route::get('/dashboard/servers/edit/{serverId}', [ServerController::class, 'edit'])->name('server.edit');
+        Route::get('/dashboard/servers/edit/{serverId}', [ServerController::class, 'edit'])->name('server.edit');
     Route::get('/user/plans/purchase/{planId}', [PlanController::class, 'purchase'])
     ->name('plans.purchase');
     
@@ -220,11 +214,9 @@ Route::middleware(['auth'])->group(function () {
 Route::get('/admin/api/locations/{location}', [LocationController::class, 'show'])->name('locations.show');
 Route::get('/client/api/plans', [PlanController::class, 'apiIndex'])->name('plans.api.Index');
 
-Route::get('/api/client/vms', [VMsController::class, 'index']);
-Route::get('/{id}', [VMsController::class, 'show']);
-
 // Load additional authentication routes
 require __DIR__.'/auth.php';
 require __DIR__.'/PterodactylApi.php';
 
 // Image libs https://iconscout.com/illustrations/empty
+
