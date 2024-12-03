@@ -14,6 +14,7 @@ class AdminMiddleware
         try {
             // Retrieve the valid API key from .env
             $validApiKey = env('ADMIN_API_KEY');
+            
             if (!$validApiKey) {
                 Log::error('ADMIN_API_KEY not configured in environment');
                 return response()->json([

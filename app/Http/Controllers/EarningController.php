@@ -12,17 +12,28 @@ class EarningController extends Controller
 {
     // Display the earning page
     public function earn(Request $request)
-    {
-        $redeemCode = $request->query('code');
+{
+    // Log all request details
+    Log::info('HTTP Request Details:', [
+        'method' => $request->method(),
+        'url' => $request->fullUrl(),
+        'headers' => $request->headers->all(),
+        'query' => $request->query(),
+        'body' => $request->all(),
+    ]);
 
-        if ($redeemCode) {
-            // Handle the redemption
-            $user = Auth::user();
+    $redeemCode = $request->query('code');
+    $referer = $request->headers->get('referer');
 
-            if (!$user || $user->redeem_code !== $redeemCode) {
-                return back()->with('Error', 'Bad code');
-            }
+    if ($redeemCode) {
+        $user = Auth::user();
 
+        if (!$user || $user->redeem_code !== $redeemCode) {
+            return back()->with('Error', 'Invalid code.');
+        }
+
+        // Check if the referer is from linkvertise.com
+        if ($referer && str_contains($referer, 'linkvertise.com')) {
             // Clear the redeem code to prevent reuse
             $user->redeem_code = null;
 
@@ -31,25 +42,34 @@ class EarningController extends Controller
             $user->coins += $coinReward;
             $user->save();
 
-            
             return Inertia::render('User/Earn', [
                 'linkvertiseEnabled' => env('LINKVERTISE_ENABLED', false),
                 'linkvertiseId' => env('LINKVERTISE_ID', 'default_id'),
                 'status' => 'Success',
             ]);
+        } else {
+            return back()->with('Error', 'Referral not verified. No coins awarded.');
         }
-
-        // Log the Linkvertise configuration values directly from .env
-        Log::info('Linkvertise Configuration:', [
-            'enabled' => env('LINKVERTISE_ENABLED', false),
-            'id' => env('LINKVERTISE_ID', 'default_id'),
-        ]);
-
-        return Inertia::render('User/Earn', [
-            'linkvertiseEnabled' => env('LINKVERTISE_ENABLED', false),
-            'linkvertiseId' => env('LINKVERTISE_ID', 'default_id'),
-        ]);
     }
+
+    // Log the Linkvertise configuration values directly from .env
+    Log::info('Linkvertise Configuration:', [
+        'enabled' => env('LINKVERTISE_ENABLED', false),
+        'id' => env('LINKVERTISE_ID', 'default_id'),
+    ]);
+
+    // Normal rendering without awarding coins
+    return Inertia::render('User/Earn', [
+        'linkvertiseEnabled' => env('LINKVERTISE_ENABLED', false),
+        'linkvertiseId' => env('LINKVERTISE_ID', 'default_id'),
+    ]);
+}
+
+
+    // Log the Linkvertise configuration values directly from .env
+    
+
+    
 
     public function generateLinkvertiseLink(Request $request)
 {

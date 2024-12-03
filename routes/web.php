@@ -25,6 +25,8 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\EarningController;
 use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\VMsController;
+use App\Http\Controllers\CDNController;
 
 
 
@@ -60,6 +62,9 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     
     Route::get('/deploy', [ServerController::class, 'create'])->name('servers.create');
     Route::post('/servers', [ServerController::class, 'store'])->name('servers.store');
+    Route::get('/admin/cdn', [CDNController::class, 'index'])->name('cdn.index');
+    Route::post('/cdn/upload', [CDNController::class, 'store'])->name('cdn.store');
+    Route::delete('/cdn/{filename}', [CDNController::class, 'destroy'])->name('cdn.destroy');
     
 
     
@@ -105,6 +110,9 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
 
     
 });
+
+
+Route::get('/storage/cdn/{filename}', [CDNController::class, 'getFiles'])->name('cdn.serve');
 
 
 //Public API routes to get normal stuff
@@ -170,6 +178,11 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::get('/admin', function () {
         return Inertia::render('AdminDashboard');
     })->name('admin.dashboard');
+    Route::get('/admin/vm/create', [VMsController::class, 'create'])->name('admin.vms.create');
+    Route::get('/admin/vm', [VMsController::class, 'Userindex'])->name('admin.vms.index');
+    Route::post('/admin/vms/store', [VMsController::class, 'store'])->name('admin.vms.store');
+    Route::delete('/admin/vms/{id}', [VMsController::class, 'destroy'])
+    ->name('admin.vms.destroy');
 });
 
 
@@ -206,6 +219,9 @@ Route::middleware(['auth'])->group(function () {
 });
 Route::get('/admin/api/locations/{location}', [LocationController::class, 'show'])->name('locations.show');
 Route::get('/client/api/plans', [PlanController::class, 'apiIndex'])->name('plans.api.Index');
+
+Route::get('/api/client/vms', [VMsController::class, 'index']);
+Route::get('/{id}', [VMsController::class, 'show']);
 
 // Load additional authentication routes
 require __DIR__.'/auth.php';

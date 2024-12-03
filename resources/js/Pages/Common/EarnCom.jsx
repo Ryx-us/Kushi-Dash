@@ -126,12 +126,13 @@ export default function Earn() {
           {flash.success && <div className="alert alert-success">{flash.success}</div>}
           {flash.error && <div className="alert alert-error">{flash.error}</div>}
           <p className="">Click the button below to earn coins through Linkvertise. (We recommend you try your best to ignore the ads)</p>
+          <p className="text-red-500 font-bold font-doto">Using bypassers won't earn you coins and will result in a report! Avoid Linkvertise as it provides minimal support to the community—choose fair methods to benefit everyone.</p>
         </CardContent>
         <CardFooter>
           {linkvertiseEnabled ? (
             <Button onClick={handleEarnClick}>Earn Coins</Button>
           ) : (
-            <p>Linkvertise is currently disabled.</p>
+            <p className='font-doto '>Linkvertise is currently disabled.</p>
           )}
         </CardFooter>
       </Card>

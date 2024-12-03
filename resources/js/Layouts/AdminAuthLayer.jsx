@@ -26,7 +26,10 @@ import {
     X,
     LucideIdCard,
     LucideUser,
-    LucideUserX2
+    LucideUserX2,
+    LucideDownload,
+    Laptop2Icon,
+    LucideFileUp
 } from 'lucide-react';
 import ApplicationLogo from '@/components/ApplicationLogo';
 import { Button } from '@/components/ui/button';
@@ -44,6 +47,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { FaLaptopCode } from 'react-icons/fa6';
 
 const MenuItem = ({ icon: Icon, label, href, isActive = false }) => (
     <Link
@@ -211,6 +215,40 @@ export default function AdminAuthLayer({ header, children, sidebartab }) {
                                     label="New Locations"
                                     href="/admin/locations/new"
                                     isActive={sidebartab === 'newlocation'}
+                                />
+                            </MenuSection>
+                            <MenuSection title="Additional">
+
+                                <MenuItem
+                                    icon={LucideFileUp}
+                                    label="Inbuilt CDN"
+                                    href="/admin/cdn"
+                                    isActive={sidebartab === 'vms'}
+                                />
+                                
+                                <MenuItem
+                                    icon={Laptop2Icon}
+                                    label="VM Management"
+                                    href="/admin/vm"
+                                    isActive={sidebartab === 'vms'}
+                                />
+                                <MenuItem
+                                    icon={FaLaptopCode}
+                                    label="New VM configuration"
+                                    href="/admin/vm/create"
+                                    isActive={sidebartab === 'newvm'}
+                                />
+                                <MenuItem
+                                    icon={Settings}
+                                    label="System Settings"
+                                    href="/admin/settings"
+                                    isActive={sidebartab === 'settings'}
+                                />
+                                <MenuItem
+                                    icon={LucideUserX2}
+                                    label="User Management"
+                                    href="/admin/users"
+                                    isActive={sidebartab === 'users'}
                                 />
                             </MenuSection>
                             <MenuSection title="Plans & Users">

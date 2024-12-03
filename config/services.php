@@ -47,4 +47,11 @@ return [
         ],
     ],
 
+    'vms' => [
+        'enabled' => env('ENABLE_VMS', false),
+        'rank' => env('STATE_VMS', 'admin'),
+    ],
+
+    
+
 ];

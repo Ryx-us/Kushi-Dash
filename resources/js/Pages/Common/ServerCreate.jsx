@@ -22,6 +22,7 @@ export default function ServerCreate() {
   const [pingResults, setPingResults] = useState({});
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
+  const [selectedEgg, setSelectedEgg] = useState(null);
   
   const { flash } = usePage().props;
   const isError = flash?.status?.includes('Error');
@@ -163,6 +164,46 @@ export default function ServerCreate() {
     }
   };
 
+  const EggGrid = ({ eggs, selectedEgg, onSelectEgg }) => {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+        {eggs.map((egg) => (
+          <div
+            key={egg.id}
+            className={`relative rounded-lg overflow-hidden cursor-pointer transition-transform hover:scale-105 ${
+              selectedEgg?.id === egg.id ? 'ring-4 ring-blue-500' : ''
+            }`}
+            onClick={() => onSelectEgg(egg)}
+            style={{
+              minHeight: '200px',
+              background: egg.imageUrl ? `url(${egg.imageUrl}) center/cover` : '#f0f0f0',
+            }}
+          >
+            {/* Semi-transparent overlay */}
+            <div className="absolute inset-0 bg-black bg-opacity-60 p-4">
+              {/* Header with icon and name */}
+              <div className="flex items-center gap-3 mb-3">
+                {egg.icon && (
+                  <img
+                    src={egg.icon}
+                    alt={`${egg.name} icon`}
+                    className="w-8 h-8 object-contain"
+                  />
+                )}
+                <h3 className="text-xl font-semibold text-white">{egg.name}</h3>
+              </div>
+              
+              {/* Description */}
+              <p className="text-sm text-gray-200 line-clamp-3">
+                {egg.description}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const ServerTypeDropdown = ({ eggs, value, onChange }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
@@ -296,8 +337,11 @@ export default function ServerCreate() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-black dark:text-white">Server Type</Label>
-              <ServerTypeDropdown eggs={eggs} value={data.egg_id} onChange={(value) => setData('egg_id', value)} />
+            <EggGrid 
+  eggs={eggs} 
+  selectedEgg={selectedEgg}
+  onSelectEgg={setSelectedEgg}
+/>
             </div>
           </CardContent>
         </Card>

@@ -132,6 +132,14 @@ class HandleInertiaRequests extends Middleware
         }
     }
 
+    $vmsEnabled = config('services.vms.enabled', false);
+    $vmsAccessLevel = env('VMS_ACCESS_LEVEL', 'null');
+
+    $vmsConfig = [
+        'enabled' => $vmsEnabled,
+        'accessLevel' => $vmsAccessLevel,
+    ];
+
     return array_merge(parent::share($request), [
         'auth' => [
             'user' => $user
@@ -152,6 +160,7 @@ class HandleInertiaRequests extends Middleware
         'linkvertiseEnabled' => config('linkvertise.enabled'),
         'linkvertiseId'      => config('linkvertise.id'),
         'pterodactyl_URL'    => env('PTERODACTYL_API_URL'),
+        'vmsConfig'          => $vmsConfig,
     ]);
 }
 }

@@ -26,7 +26,9 @@ import {
     HammerIcon,
     LucideCoins,
     LucideShoppingBag,
-    LucideHandCoins
+    LucideHandCoins,
+    CogIcon,
+    LucideSlidersVertical
 } from 'lucide-react'
 import ApplicationLogo from '@/components/ApplicationLogo'
 import { Button } from '@/components/ui/button'
@@ -81,7 +83,7 @@ const MenuSection = ({ title, children, defaultOpen = true }) => {
 }
 
 export default function AuthenticatedLayout({ header, children, sidebartab }) {
-    const { auth, coins } = usePage().props
+    const { auth, coins, vmsConfig } = usePage().props
     const [isDarkMode, setIsDarkMode] = useState(false)
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
@@ -105,6 +107,19 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
             document.documentElement.classList.remove('dark')
         }
     }
+
+    const canAccessVMs = () => {
+        if (!vmsConfig.enabled) return false;
+    
+        const accessLevel = vmsConfig.accessLevel;
+        const userRank = auth.user.rank;
+    
+        if (accessLevel === null ) return true;
+        if (accessLevel === 'premium' && (userRank === 'premium' || userRank === 'admin')) return true;
+        if (accessLevel === 'admin' && userRank === 'admin') return true;
+    
+        return false;
+    };
 
     const toggleSidebar = () => {
         setIsSidebarOpen(!isSidebarOpen)
@@ -184,13 +199,33 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
                     {auth.user.rank === 'admin' && (
                         <MenuSection title="BUSINESS SETTINGS">
                             <MenuItem
-                                icon={Settings}
-                                label="Settings"
+                                icon={CogIcon}
+                                label="Admin Panel"
                                 href="/admin"
                                 isActive={sidebartab === 'settings'}
                             />
                         </MenuSection>
                     )}
+
+{vmsConfig.enabled && (
+            <MenuSection title="VIRTUAL MACHINES">
+              {canAccessVMs() ? (
+                <MenuItem
+                  icon={LucideSlidersVertical}
+                  label="Virtual Machines"
+                  href="/vms"
+                  isActive={sidebartab === 'vms'}
+                />
+              ) : (
+                <div className="flex items-center p-4 text-gray-500">
+                  <LucideLock className="h-5 w-5 mr-2" />
+                  <span>VMs (Access Restricted)</span>
+                </div>
+              )}
+            </MenuSection>
+          )}
+
+
                 </CardContent>
                 <CardFooter className="p-2 border-t">
                     <div className="w-full space-y-2">

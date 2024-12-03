@@ -31,9 +31,11 @@ export default function DisplayServer({ className = '' }) {
     const [showSuccess, setShowSuccess] = useState(!!status)
     const { pterodactyl_URL } = usePage().props;
 
+    console.log(status)
+
   
 
-    console.log(usePage().props.flash.res)
+    console.log(usePage().props)
 
     useEffect(() => {
         hotReloadApi().then(fetchServers)
