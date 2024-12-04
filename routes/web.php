@@ -172,7 +172,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    Route::get('/plan', [PlanController::class, 'Userindex'])->name('plans.Userindex');
+    Route::get('/plans', [PlanController::class, 'Userindex'])->name('plans.Userindex');
     Route::get('client/api/users/{id}', [UserController::class, 'showClient']);
     Route::get('/shop', [PlanController::class, 'Userindexcoins'])->name('plans.Userindexcoins');
 });
