@@ -17,8 +17,9 @@ const EggForm = ({ egg = {} }) => {
         EggID: egg.EggID || '',
         imageUrl: egg.imageUrl || '',
         icon: egg.icon || '',
+        nest_id: egg.nest_id || '', // Add this line
         additional_environmental_variables: egg.additional_environmental_variables || [], // Ensure this is always an array
-        plans: egg.plans || [] // Add plans to form data
+        plans: egg.plans || [] 
     });
 
     const { flash } = usePage().props;
@@ -181,6 +182,21 @@ const EggForm = ({ egg = {} }) => {
                                 <p className="text-sm text-red-500">{errors.EggID}</p>
                             )}
                         </div>
+                        <div className="space-y-2">
+        <Label htmlFor="nest_id">Nest ID</Label>
+        <Input
+            id="nest_id"
+            name="nest_id"
+            type="text"
+            placeholder="Enter nest ID"
+            value={data.nest_id}
+            onChange={e => setData('nest_id', e.target.value)}
+            className={errors.nest_id ? 'border-red-500' : ''}
+        />
+        {errors.nest_id && (
+            <p className="text-sm text-red-500">{errors.nest_id}</p>
+        )}
+    </div>
 
                         <div className="space-y-2">
                             <Label htmlFor="imageUrl">Image</Label>
@@ -196,6 +212,8 @@ const EggForm = ({ egg = {} }) => {
                                 <p className="text-sm text-red-500">{errors.imageUrl}</p>
                             )}
                         </div>
+
+                        
 
                         <div className="space-y-2">
                             <Label htmlFor="icon">Icon</Label>

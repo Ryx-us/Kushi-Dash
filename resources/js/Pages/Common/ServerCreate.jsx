@@ -22,7 +22,7 @@ export default function ServerCreate() {
   const [pingResults, setPingResults] = useState({});
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
-  const [selectedEgg, setSelectedEgg] = useState(null);
+  const [selectedEggId, setSelectedEggId] = useState(null);
   
   const { flash } = usePage().props;
   const isError = flash?.status?.includes('Error');
@@ -45,7 +45,6 @@ export default function ServerCreate() {
     setShowSuccessDialog(false);
     router.visit('/dashboard');
   };
-
 
   const handleAccessServer = () => {
     if (flash.server_url) {
@@ -75,42 +74,34 @@ export default function ServerCreate() {
 
   useEffect(() => {
     if (!Array.isArray(locations) || locations.length === 0) {
-      //console.log ('No locations available');
       return;
     }
 
     const checkPing = async (location) => {
       if (!location.latencyurl) {
-        //console.log ('No latency URL for location:', location.name);
         return;
       }
 
       try {
-        //console.log ('Checking ping for:', location.name);
         const measurements = [];
 
-        // Take 3 measurements
         for (let i = 0; i < 3; i++) {
-          const start = performance.now(); // More precise than Date.now()
+          const start = performance.now();
           await fetch(location.latencyUrl, {
             mode: 'cors',
             cache: 'no-cache',
-            method: 'HEAD', // Only get headers, not full response
+            method: 'HEAD',
           });
           const end = performance.now();
           measurements.push(end - start);
         }
 
-        // Calculate average, excluding outliers
         const latency = Math.round(
           measurements
-            .sort((a, b) => a - b) // Sort ascending
-            .slice(0, 2) // Take first 2 measurements (exclude highest)
-            .reduce((a, b) => a + b, 0) / 2 // Average
+            .sort((a, b) => a - b)
+            .slice(0, 2)
+            .reduce((a, b) => a + b, 0) / 2
         );
-
-        //console.log ('Latency measurements:', measurements);
-        //console.log ('Final latency:', latency);
 
         setPingResults((prev) => ({
           ...prev,
@@ -164,24 +155,22 @@ export default function ServerCreate() {
     }
   };
 
-  const EggGrid = ({ eggs, selectedEgg, onSelectEgg }) => {
+  const EggGrid = ({ eggs, onSelectEgg }) => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
         {eggs.map((egg) => (
           <div
             key={egg.id}
             className={`relative rounded-lg overflow-hidden cursor-pointer transition-transform hover:scale-105 ${
-              selectedEgg?.id === egg.id ? 'ring-4 ring-blue-500' : ''
+              selectedEggId === egg.id ? 'ring-4 ring-blue-500' : ''
             }`}
-            onClick={() => onSelectEgg(egg)}
+            onClick={() => onSelectEgg(egg.id)}
             style={{
               minHeight: '200px',
               background: egg.imageUrl ? `url(${egg.imageUrl}) center/cover` : '#f0f0f0',
             }}
           >
-            {/* Semi-transparent overlay */}
             <div className="absolute inset-0 bg-black bg-opacity-60 p-4">
-              {/* Header with icon and name */}
               <div className="flex items-center gap-3 mb-3">
                 {egg.icon && (
                   <img
@@ -193,69 +182,12 @@ export default function ServerCreate() {
                 <h3 className="text-xl font-semibold text-white">{egg.name}</h3>
               </div>
               
-              {/* Description */}
               <p className="text-sm text-gray-200 line-clamp-3">
                 {egg.description}
               </p>
             </div>
           </div>
         ))}
-      </div>
-    );
-  };
-
-  const ServerTypeDropdown = ({ eggs, value, onChange }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef(null);
-
-    useEffect(() => {
-      const handleClickOutside = (event) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-          setIsOpen(false);
-        }
-      };
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    const selectedEgg = eggs.find((egg) => egg.id === value);
-
-    return (
-      <div className="relative" ref={dropdownRef}>
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className={`w-full flex items-center justify-between px-3 py-2 border rounded-md
-                        bg-white dark:white 
-                        text-black dark:text-black
-                        hover:bg-gray-50 dark:hover:bg-zinc-700
-                        transition-colors
-                        ${isOpen ? 'ring-2 ring-primary' : ''}`}
-        >
-          <span className="text-sm">{selectedEgg ? selectedEgg.name : 'Select server type'}</span>
-          <LucideChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-        </button>
-
-        {isOpen && (
-          <div className="absolute z-50 w-full mt-1 py-1 bg-white dark:bg-black border rounded-md shadow-lg">
-            {eggs.map((egg) => (
-              <button
-                key={egg.id}
-                type="button"
-                onClick={() => {
-                  onChange(egg.id);
-                  setIsOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 text-sm
-                                    text-black dark:text-white
-                                    hover:bg-gray-50 dark:hover:bg-zinc-700 rounded-lg
-                                    ${value === egg.id ? 'bg-gray-100 dark:bg-black' : ''}`}
-              >
-                {egg.name}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
     );
   };
@@ -337,11 +269,13 @@ export default function ServerCreate() {
             </div>
 
             <div className="space-y-2">
-            <EggGrid 
-  eggs={eggs} 
-  selectedEgg={selectedEgg}
-  onSelectEgg={setSelectedEgg}
-/>
+              <EggGrid 
+                eggs={eggs} 
+                onSelectEgg={(id) => {
+                  setSelectedEggId(id);
+                  setData('egg_id', id);
+                }} 
+              />
             </div>
           </CardContent>
         </Card>
@@ -420,48 +354,46 @@ export default function ServerCreate() {
       </div>
 
       <AlertDialog open={!isError && showSuccessDialog} onOpenChange={handleSuccessClose}>
-                <AlertDialogContent className="max-w-md">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2">
-                            <CheckCircle2 className="h-6 w-6 text-green-500" />
-                            Success!
-                        </AlertDialogTitle>
-                        <AlertDialogDescription className="text-base">
-                            {flash?.status || 'Your server has been created successfully!'}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="flex gap-2">
-                        <AlertDialogAction onClick={handleSuccessClose}>Continue</AlertDialogAction>
-                        {flash?.server_url && (
-                            <Button onClick={handleAccessServer} variant="outline">
-                                Access Server
-                            </Button>
-                        )}
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-6 w-6 text-green-500" />
+              Success!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              {flash?.status || 'Your server has been created successfully!'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2">
+            <AlertDialogAction onClick={handleSuccessClose}>Continue</AlertDialogAction>
+            {flash?.server_url && (
+              <Button onClick={handleAccessServer} variant="outline">
+                Access Server
+              </Button>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-            <AlertDialog open={showErrorDialog} onOpenChange={handleErrorClose}>
-                <AlertDialogContent className="max-w-md rounded-lg shadow-lg shadow-orange-950">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2">
-                            <XCircle className="h-6 w-6 text-red-500" />
-                            Error
-                        </AlertDialogTitle>
-                        <AlertDialogDescription className="text-base">
-                            {flash?.status || 'Failed to create server. Please try again.'}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogAction onClick={handleErrorClose}>Close</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+      <AlertDialog open={showErrorDialog} onOpenChange={handleErrorClose}>
+        <AlertDialogContent className="max-w-md rounded-lg shadow-lg shadow-orange-950">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <XCircle className="h-6 w-6 text-red-500" />
+              Error
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              {flash?.status || 'Failed to create server. Please try again.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={handleErrorClose}>Close</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </form>
   );
 }
-
-// Add these components below the main ServerCreate function
 
 const ResourceInput = ({ label, value, onChange, min, max, step, remaining }) => {
   const displayValue = value === 0 ? '' : value;
@@ -545,3 +477,4 @@ const SmallResourceInput = ({ label, value, onChange, min, max, remaining }) => 
     </div>
   );
 };
+
