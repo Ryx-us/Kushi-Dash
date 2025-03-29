@@ -27,12 +27,13 @@ class PterodactylEggController extends Controller
     Log::info('Creating new egg with data:', ['request' => $request->all()]);
 
     try {
-        // Validate the request data
+        // Validate the request data with both possible naming conventions
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'EggID' => 'required|string|max:255',
             'nestId' => 'nullable|string|max:255',
+            'nest_id' => 'nullable|string|max:255', // Add this line to accept nest_id
             'imageUrl' => 'nullable|string|max:255',
             'icon' => 'nullable|string|max:255',
             'additional_environmental_variables' => 'nullable|array',
@@ -41,6 +42,12 @@ class PterodactylEggController extends Controller
 
         // Create data array for egg creation
         $eggData = $validatedData;
+        
+        // Handle the nest_id / nestId discrepancy
+        if (isset($eggData['nest_id']) && !isset($eggData['nestId'])) {
+            $eggData['nestId'] = $eggData['nest_id'];
+            unset($eggData['nest_id']); // Remove the underscored version
+        }
         
         // Ensure plans exists and is at least an empty array
         if (!isset($eggData['plans'])) {
