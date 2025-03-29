@@ -3,7 +3,7 @@
 import React from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, usePage } from '@inertiajs/react';
-import { Button } from '@/Components/ui/button';
+import { Button } from '@/components/ui/button';
 import UpdatePasswordForm from "@/Pages/Profile/Partials/UpdatePasswordForm.jsx";
 
 import DeleteUserForm from "@/Pages/Profile/Partials/DeleteUserForm.jsx";
