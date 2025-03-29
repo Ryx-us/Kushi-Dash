@@ -32,15 +32,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (NotFoundHttpException $e) {
             return response()->view('404', [], 404);
         });
-        $exceptions->render(function (\Throwable $e) {
-            if ($e instanceof HttpException && $e->getStatusCode() === 500) {
-                return response()->view('errors.500', [], 500);
-            }
-
-            // Catch any other error that might result in a 500
-            if ($e instanceof \Error || $e instanceof \Exception) {
-                return response()->view('errors.500', [], 500);
-            }
-        });
+        
     })
     ->create();
