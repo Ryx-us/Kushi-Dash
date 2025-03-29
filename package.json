@@ -2,8 +2,11 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
-        "dev": "vite"
+        "dev": "concurrently \"npm run dev:laravel\" \"npm run dev:react\"",
+        "dev:laravel": "php artisan serve",
+        "dev:react": "vite",
+        "build": "tsc && vite build",
+        "production": "npm run build && ./serve.production.sh"
     },
     "devDependencies": {
         "@headlessui/react": "^2.2.0",

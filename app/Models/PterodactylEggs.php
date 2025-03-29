@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class PterodactylEggs extends Model
 {
@@ -14,26 +13,59 @@ class PterodactylEggs extends Model
         'name',
         'description',
         'EggID',
-        'imageUrl',
         'nestId',
+        'imageUrl',
         'icon',
         'additional_environmental_variables',
-        'plans'
+        'plans',
     ];
 
     protected $casts = [
-        'additional_environmental_variables' => 'array',
-        'plans' => 'array'
+        'additional_environmental_variables' => 'array|nullable',
+        'plans' => 'array|nullable',
     ];
-
-    
 
     /**
-     * Default available plans
+     * Get the additional environmental variables attribute.
+     *
+     * @param  mixed  $value
+     * @return array|null
      */
-    public static $availablePlans = [
-        'basic',
-        'premium',
-        'enterprise'
-    ];
+    public function getAdditionalEnvironmentalVariablesAttribute($value)
+    {
+        return $value ? json_decode($value, true) : [];
+    }
+
+    /**
+     * Get the plans attribute.
+     *
+     * @param  mixed  $value
+     * @return array|null
+     */
+    public function getPlansAttribute($value)
+    {
+        return $value ? json_decode($value, true) : [];
+    }
+
+    /**
+     * Set the additional environmental variables attribute.
+     *
+     * @param  mixed  $value
+     * @return void
+     */
+    public function setAdditionalEnvironmentalVariablesAttribute($value)
+    {
+        $this->attributes['additional_environmental_variables'] = $value ? json_encode($value) : null;
+    }
+
+    /**
+     * Set the plans attribute.
+     *
+     * @param  mixed  $value
+     * @return void
+     */
+    public function setPlansAttribute($value)
+    {
+        $this->attributes['plans'] = $value ? json_encode($value) : null;
+    }
 }
