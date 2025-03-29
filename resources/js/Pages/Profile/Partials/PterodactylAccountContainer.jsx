@@ -13,6 +13,10 @@ export default function PterodactylAccountContainer({
                                                     }) {
     const user = usePage().props.auth.user;
 
+    const props = usePage().props;
+
+    console.log(props);
+
     const { data, setData, patch, errors, processing, recentlySuccessful } =
         useForm({
             name: user.name,
@@ -90,6 +94,7 @@ export default function PterodactylAccountContainer({
                         </p>
                     </Transition>
                 </div>
+                
             </form>
         </div>
     );

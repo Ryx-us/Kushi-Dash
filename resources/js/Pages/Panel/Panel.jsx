@@ -2,15 +2,18 @@
 
 import React from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
-;
+import { Head, usePage } from '@inertiajs/react';
+import { Button } from '@/Components/ui/button';
 import UpdatePasswordForm from "@/Pages/Profile/Partials/UpdatePasswordForm.jsx";
 
 import DeleteUserForm from "@/Pages/Profile/Partials/DeleteUserForm.jsx";
 import PterodactylContainer from "@/Pages/Panel/Components/PterodactylContainer.jsx";
 import PasswordResetFormPterodactyl from "@/Pages/Panel/Components/PasswordReset.jsx";
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 export default function Panel() {
+
+    const props = usePage().props;
     return (
         <AuthenticatedLayout
             header={
@@ -30,6 +33,15 @@ export default function Panel() {
 
                     <PterodactylContainer className="max-w-xl"/>
                     <PasswordResetFormPterodactyl className="max-w-xl"/>
+                    <Card className="max-w-xl">
+                        <CardHeader> Pterodactyl Panel </CardHeader>
+                        <CardContent>
+                            <Button onClick={() => window.location.href = props.pterodactyl_URL} variant="primary" className="bg-green-900">
+                                                    Open Panel 
+                            </Button>
+                        </CardContent>
+                    </Card>
+                    
 
 
 

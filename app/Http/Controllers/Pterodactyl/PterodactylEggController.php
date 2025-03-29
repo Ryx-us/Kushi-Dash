@@ -24,23 +24,42 @@ class PterodactylEggController extends Controller
 
     public function store(Request $request)
 {
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'description' => 'nullable|string',
-        'EggID' => 'required|string|max:255',
-        'nestId' => 'nullable|string|max:255',
-        'imageUrl' => 'nullable|string|max:255',
-        'icon' => 'nullable|string|max:255',
-        'additional_environmental_variables' => 'nullable|array',
-        'plans' => 'required|array',
-    ]);
-
     Log::info('Creating new egg with data:', ['request' => $request->all()]);
 
     try {
-        $egg = PterodactylEggs::create($request->all());
-        
+        // Validate the request data
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'EggID' => 'required|string|max:255',
+            'nestId' => 'nullable|string|max:255',
+            'imageUrl' => 'nullable|string|max:255',
+            'icon' => 'nullable|string|max:255',
+            'additional_environmental_variables' => 'nullable|array',
+            'plans' => 'nullable|array',
+        ]);
 
+        // Create data array for egg creation
+        $eggData = $validatedData;
+        
+        // Ensure plans exists and is at least an empty array
+        if (!isset($eggData['plans'])) {
+            $eggData['plans'] = [];
+        }
+        
+        // Filter environmental variables if they exist
+        if (isset($eggData['additional_environmental_variables'])) {
+            $eggData['additional_environmental_variables'] = array_filter(
+                $eggData['additional_environmental_variables'], 
+                function($value) { return !empty(trim($value)); }
+            );
+        }
+        
+        Log::info('Egg data after processing:', ['eggData' => $eggData]);
+        
+        // Create the egg with the processed data
+        $egg = PterodactylEggs::create($eggData);
+        
         Log::info('Egg created successfully:', ['egg' => $egg]);
 
         return redirect()->route('admin.eggs.new')->with([
@@ -50,7 +69,11 @@ class PterodactylEggController extends Controller
         ]);
 
     } catch (\Exception $e) {
-        Log::error('Failed to create egg:', ['error' => $e->getMessage()]);
+        Log::error('Egg creation failed: ' . $e->getMessage(), [
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString()
+        ]);
 
         return redirect()->route('admin.eggs.new')->with([
             'res' => 'Failed to create egg: ' . $e->getMessage(),
@@ -59,6 +82,7 @@ class PterodactylEggController extends Controller
         ]);
     }
 }
+
     
 
     public function getEggInfo($id)
