@@ -21,15 +21,15 @@ class PterodactylEggs extends Model
     ];
 
     protected $casts = [
-        'additional_environmental_variables' => 'array|nullable',
-        'plans' => 'array|nullable',
+        'additional_environmental_variables' => 'array',
+        'plans' => 'array',
     ];
 
     /**
      * Get the additional environmental variables attribute.
      *
      * @param  mixed  $value
-     * @return array|null
+     * @return array
      */
     public function getAdditionalEnvironmentalVariablesAttribute($value)
     {
@@ -40,7 +40,7 @@ class PterodactylEggs extends Model
      * Get the plans attribute.
      *
      * @param  mixed  $value
-     * @return array|null
+     * @return array
      */
     public function getPlansAttribute($value)
     {
