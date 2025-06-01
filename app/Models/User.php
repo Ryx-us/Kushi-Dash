@@ -2,165 +2,124 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Casts\AsCollection;
 
 class User extends Authenticatable
 {
-    use Notifiable;
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'discord_id',
-        'pterodactyl_id',
-        'pterodactyl_email',
-        'coins',
-        'resources',
-        'limits',
-        'rank',
-        'purchases_plans',
-        'redeem_code',
+        'name', 'email', 'password', 'discord_id', 'pterodactyl_id', 'pterodactyl_email',
+        'limits', 'resources', 'rank', 'coins', 'purchases_plans'
     ];
 
     protected $hidden = [
-        'password',
-        'remember_token',
-        'redeem_code',
+        'password', 'remember_token',
     ];
 
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'resources' => 'array',
+        'password' => 'hashed',
         'limits' => 'array',
+        'resources' => 'array',
         'purchases_plans' => 'array',
     ];
 
-    /**
-     * Convert the user to a Vue-friendly object.
-     *
-     * @return array
-     */
-    public function toVueObject()
+    // Add this method to initialize default values when a user is created
+    protected static function booted()
     {
-        return [
-            'id' => $this->id,
-            'name' => $this->name,
-            'email' => $this->email,
-            'coins' => $this->coins,
-            'resources' => $this->resources,
-            'limits' => $this->limits,
-            'rank' => $this->rank,
-            'purchases_plans' => $this->purchases_plans,
-            'discord_id' => $this->discord_id,
-            'pterodactyl_id' => $this->pterodactyl_id,
-            'pterodactyl_email' => $this->pterodactyl_email,
-            'created_at' => $this->created_at->format('Y-m-d H:i:s'),
-            'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
-            'is_admin' => $this->isAdmin(),
-        ];
+        static::creating(function ($user) {
+            if (!$user->limits) {
+                $user->limits = [
+                    'cpu' => (int) env('INITIAL_CPU', 750),
+                    'memory' => (int) env('INITIAL_MEMORY', 1500),
+                    'disk' => (int) env('INITIAL_DISK', 3024),
+                    'servers' => (int) env('INITIAL_SERVERS', 1),
+                    'databases' => (int) env('INITIAL_DATABASES', 0),
+                    'backups' => (int) env('INITIAL_BACKUPS', 0),
+                    'allocations' => (int) env('INITIAL_ALLOCATIONS', 2),
+                ];
+            }
+
+            if (!$user->resources) {
+                $user->resources = [
+                    'cpu' => 0,
+                    'memory' => 0,
+                    'disk' => 0,
+                    'databases' => 0,
+                    'allocations' => 0,
+                    'backups' => 0,
+                    'servers' => 0,
+                ];
+            }
+
+            if (!$user->purchases_plans) {
+                $user->purchases_plans = [];
+            }
+
+            if (!$user->rank) {
+                $user->rank = 'free';
+            }
+
+            if (!$user->coins) {
+                $user->coins = 0;
+            }
+        });
+
+        // Also handle retrieved event to fix existing users
+        static::retrieved(function ($user) {
+            $dirty = false;
+
+            if ($user->limits === null) {
+                $user->limits = [
+                    'cpu' => (int) env('INITIAL_CPU', 750),
+                    'memory' => (int) env('INITIAL_MEMORY', 1500),
+                    'disk' => (int) env('INITIAL_DISK', 3024),
+                    'servers' => (int) env('INITIAL_SERVERS', 1),
+                    'databases' => (int) env('INITIAL_DATABASES', 0),
+                    'backups' => (int) env('INITIAL_BACKUPS', 0),
+                    'allocations' => (int) env('INITIAL_ALLOCATIONS', 2),
+                ];
+                $dirty = true;
+            }
+
+            if ($user->resources === null) {
+                $user->resources = [
+                    'cpu' => 0,
+                    'memory' => 0,
+                    'disk' => 0,
+                    'databases' => 0,
+                    'allocations' => 0,
+                    'backups' => 0,
+                    'servers' => 0,
+                ];
+                $dirty = true;
+            }
+
+            if ($user->purchases_plans === null) {
+                $user->purchases_plans = [];
+                $dirty = true;
+            }
+
+            if ($user->rank === null) {
+                $user->rank = 'free';
+                $dirty = true;
+            }
+
+            if ($user->coins === null) {
+                $user->coins = 0;
+                $dirty = true;
+            }
+
+            if ($dirty) {
+                $user->save();
+            }
+        });
     }
 
-    /**
-     * Check if the user is an admin.
-     *
-     * @return bool
-     */
-    public function isAdmin()
-    {
-        return $this->rank === 'admin';
-    }
-
-    /**
-     * Get the pterodactyl user ID.
-     *
-     * @return int|null
-     */
-    public function getPterodactylId()
-    {
-        return $this->pterodactyl_id;
-    }
-
-    /**
-     * Get the user's available resources.
-     *
-     * @return array
-     */
-    public function getResources()
-    {
-        return $this->resources ?? [
-            'cpu' => 0,
-            'memory' => 0,
-            'disk' => 0,
-            'slots' => 0,
-        ];
-    }
-
-    /**
-     * Get the user's resource limits.
-     *
-     * @return array
-     */
-    public function getLimits()
-    {
-        return $this->limits ?? [
-            'cpu' => 0,
-            'memory' => 0,
-            'disk' => 0,
-            'slots' => 0,
-        ];
-    }
-
-    /**
-     * Get the user's purchased plans.
-     *
-     * @return array
-     */
-    public function getPurchasedPlans()
-    {
-        return $this->purchases_plans ?? [];
-    }
-
-    /**
-     * Check if the user has sufficient coins for a purchase.
-     *
-     * @param int $amount
-     * @return bool
-     */
-    public function hasSufficientCoins($amount)
-    {
-        return $this->coins >= $amount;
-    }
-
-    /**
-     * Deduct coins from the user's balance.
-     *
-     * @param int $amount
-     * @return bool
-     */
-    public function deductCoins($amount)
-    {
-        if ($this->hasSufficientCoins($amount)) {
-            $this->coins -= $amount;
-            $this->save();
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Add coins to the user's balance.
-     *
-     * @param int $amount
-     * @return void
-     */
-    public function addCoins($amount)
-    {
-        $this->coins += $amount;
-        $this->save();
-    }
+    // Your other model methods...
 }

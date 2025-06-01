@@ -71,16 +71,38 @@ class DiscordLoginController extends Controller
             $pterodactylId = $pterodactylUser['attributes']['id'];
             $pterodactylEmail = $pterodactylUser['attributes']['email'];
 
-            $user = User::updateOrCreate(
-                ['discord_id' => $discordUser->getId()],
-                [
-                    'name' => $discordUser->getName(),
-                    'email' => $discordUser->getEmail() ?? $this->generateUniqueEmail($discordUser->getId()),
-                    'password' => Hash::make(Str::random(24)),
-                    'pterodactyl_id' => $pterodactylId,
-                    'pterodactyl_email' => $pterodactylEmail,
-                ]
-            );
+            
+$user = User::updateOrCreate(
+    ['discord_id' => $discordUser->getId()],
+    [
+        'name' => $discordUser->getName(),
+        'email' => $discordUser->getEmail() ?? $this->generateUniqueEmail($discordUser->getId()),
+        'password' => Hash::make(Str::random(24)),
+        'pterodactyl_id' => $pterodactylId,
+        'pterodactyl_email' => $pterodactylEmail,
+        'limits' => [
+            'cpu' => (int) env('INITIAL_CPU', 750),
+            'memory' => (int) env('INITIAL_MEMORY', 1500),
+            'disk' => (int) env('INITIAL_DISK', 3024),
+            'servers' => (int) env('INITIAL_SERVERS', 1),
+            'databases' => (int) env('INITIAL_DATABASES', 0),
+            'backups' => (int) env('INITIAL_BACKUPS', 0),
+            'allocations' => (int) env('INITIAL_ALLOCATIONS', 2),
+        ],
+        'resources' => [
+            'cpu' => 0,
+            'memory' => 0,
+            'disk' => 0,
+            'databases' => 0,
+            'allocations' => 0,
+            'backups' => 0,
+            'servers' => 0,
+        ],
+        'purchases_plans' => [],
+        'rank' => 'free',
+        'coins' => 0,
+    ]
+);
         }
 
         Auth::login($user, true);
