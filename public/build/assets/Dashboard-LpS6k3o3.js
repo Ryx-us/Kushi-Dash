@@ -1,1 +1,0 @@
-import{j as d,Y as r}from"./app-Dm8cIE4T.js";const a=()=>d.jsxs("div",{children:[d.jsx(r,{title:"Admin Dashboard"}),d.jsx("h1",{children:"Admin Dashboard"}),d.jsx("p",{children:"Welcome to the admin dashboard retard."})]});export{a as default};

@@ -31,24 +31,9 @@ export default function DisplayServer({ className = '' }) {
     const [showSuccess, setShowSuccess] = useState(!!status)
     const { pterodactyl_URL } = usePage().props;
 
-    console.log(status)
-
-  
-
-    console.log(usePage().props)
-
     useEffect(() => {
-        hotReloadApi().then(fetchServers)
-    }, [])
-
-    const hotReloadApi = async () => {
-        try {
-            const response = await axios.get(`/pterodactyl/servers/${user.pterodactyl_id}`)
-            console.warn(response.data.data.servers)
-        } catch (error) {
-            console.error('Error hot reloading API:', error)
-        }
-    }
+        fetchServers();
+    }, []);
 
     const handleDelete = (serverId) => {
         setIsDeleting(true)
@@ -81,31 +66,75 @@ export default function DisplayServer({ className = '' }) {
     }
 
     const fetchServers = () => {
-        post(`/pterodactyl/servers/${user.pterodactyl_id}`, {
-            preserveScroll: true,
-            onSuccess: (page) => {
-                if (page.props.flash.res) {
-                    setServers(page.props.flash.res)
-                    page.props.flash.res.forEach((server) => {
-                        fetchEggData(server.attributes.egg)
-                    })
-                }
-                setIsLoading(false)
-            },
-            onError: () => {
-                setIsLoading(false)
-            },
-        })
-    }
+    setIsLoading(true);
 
-    const handleExternalLinkClick = () => {
+    console.log('senidng request to fetch servers for user:', user.pterodactyl_id);
+    
+    // Get the CSRF token from the meta tag
+    const getCsrfToken = () => {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'XSRF-TOKEN') {
+                return decodeURIComponent(value);
+            }
+        }
+        return null;
+    };
+    
+   
+    
+    // Make the Axios request with proper headers
+    axios.get(`/pterodactyl/servers/${user.pterodactyl_id}`, {
+        headers: {
+           
+            'Accept': 'application/json'
+        }
+    })
+
+    
+        .then(response => {
+            // Parse server data from the response
+            const data = response.data;
+            console.log("Response data:", data);
+            let serverData = [];
+            
+            // Handle both Inertia and direct JSON responses
+            if (data.props && data.props.flash && data.props.flash.res) {
+                // Inertia response format
+                serverData = data.props.flash.res;
+            } else if (data.servers) {
+                // Direct JSON response format
+                serverData = data;
+            }
+            
+            console.log("Server data received:", serverData.servers);
+            setServers(serverData.servers);
+            
+            // Fetch egg data for each server
+            if (Array.isArray(serverData)) {
+                serverData.forEach(server => {
+                    if (server.attributes && server.attributes.egg) {
+                        fetchEggData(server.attributes.egg);
+                    }
+                });
+            }
+        })
+        .catch(error => {
+            console.error("Error fetching servers:", error);
+        })
+        .finally(() => {
+            setIsLoading(false);
+        });
+};
+
+    const handleExternalLinkClick = (serverId) => {
         if (!pterodactyl_URL) {
             console.error('Pterodactyl URL is not defined.');
             return;
         }
 
-        const serverUrl = `${pterodactyl_URL}`;
-        //console.log (servers.identifier)
+        const serverUrl = `${pterodactyl_URL}/server/${serverId}`;
         window.open(serverUrl, '_blank');
     };
 
@@ -138,26 +167,26 @@ export default function DisplayServer({ className = '' }) {
     if (!servers || servers.length === 0) {
         return (
             <div className="mt-6">
-    <Card>
-        <CardContent className="p-6 flex flex-col items-center justify-center space-y-4">
-            <img 
-                src="/Empty-pana.svg" 
-                alt="No Servers" 
-                className="w-80 h-80"
-            />
-            <p className="text-muted-foreground text-lg font-medium">
-                You don't have any servers yet
-            </p>
-            <Button 
-    variant="default"
-    className="dark:bg-white bg-black"
-    onClick={() => window.location.href = '/deploy'}
->
-    Create Your First Server
-</Button>
-        </CardContent>
-    </Card>
-</div>
+                <Card>
+                    <CardContent className="p-6 flex flex-col items-center justify-center space-y-4">
+                        <img 
+                            src="/Empty-pana.svg" 
+                            alt="No Servers" 
+                            className="w-80 h-80"
+                        />
+                        <p className="text-muted-foreground text-lg font-medium">
+                            You don't have any servers yet
+                        </p>
+                        <Button 
+                            variant="default"
+                            className="dark:bg-white bg-black"
+                            onClick={() => window.location.href = '/deploy'}
+                        >
+                            Create Your First Server
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
         )
     }
 
@@ -235,12 +264,12 @@ export default function DisplayServer({ className = '' }) {
                         </CardContent>
 
                         <CardFooter className="justify-end space-x-2 bg-black/50 backdrop-blur-sm">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(attributes.id)}>
-    <Pencil className="h-4 w-4" />
-</Button>
-                            <Button variant="ghost" size="icon" onClick={handleExternalLinkClick}>
-                <ExternalLink className="h-4 w-4" />
-            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(attributes.id)}>
+                                <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleExternalLinkClick(attributes.identifier)}>
+                                <ExternalLink className="h-4 w-4" />
+                            </Button>
                             <Button 
                                 variant="ghost" 
                                 size="icon" 
@@ -274,8 +303,6 @@ export default function DisplayServer({ className = '' }) {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-
-            
         </div>
     )
 }

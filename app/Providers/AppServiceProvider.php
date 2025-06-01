@@ -21,6 +21,20 @@ class AppServiceProvider extends ServiceProvider
         // Registration logic if needed
     }
 
+    protected function schedule(Schedule $schedule)
+{
+    // Update user resources every 15 minutes to keep the cache fresh
+    $schedule->call(function () {
+        User::whereNotNull('pterodactyl_id')->chunk(20, function ($users) {
+            foreach ($users as $user) {
+                UpdateUserResources::dispatch($user->id);
+                // Add a small delay between jobs to prevent overwhelming the Pterodactyl API
+                sleep(1);
+            }
+        });
+    })->everyFifteenMinutes();
+}
+
     /**
      * Bootstrap any application services.
      */

@@ -29,7 +29,7 @@ export default function Shop() {
     const [alertType, setAlertType] = useState('');
 
     useEffect(() => {
-        if (flash.status) {
+        if (flash && flash.status) {
             setAlertMessage(flash.status);
             if (flash.status.toLowerCase().includes('error')) {
                 setAlertType('error');

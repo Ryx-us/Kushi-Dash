@@ -15,10 +15,13 @@
         "laravel/socialite": "^5.16",
         "laravel/tinker": "^2.9",
         "socialiteproviders/discord": "^4.2",
+        "spiral/roadrunner-cli": "^2.6.0",
+        "spiral/roadrunner-http": "^3.3.0",
         "swoole/ide-helper": "^5.1",
         "tightenco/ziggy": "^2.0"
     },
     "require-dev": {
+        "barryvdh/laravel-debugbar": "^3.15",
         "fakerphp/faker": "^1.23",
         "laravel/breeze": "^2.2",
         "laravel/pail": "^1.1",

@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use App\Http\Controllers\Auth\DiscordLoginController;
 use App\Http\Controllers\Auth\ResetPasswordController;
@@ -12,7 +13,7 @@ use App\Http\Controllers\PterodactylController;
 use App\Http\Controllers\Pterodactyl\ResetPassword;
 use App\Http\Controllers\Pterodactyl\ServerController;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+
 use App\Http\Middleware\AdminMiddleware;
 use App\Http\Controllers\Pterodactyl\PterodactylEggController;
 use App\Http\Controllers\LogController;
@@ -63,6 +64,13 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::post('/servers', [ServerController::class, 'store'])->name('servers.store');
 
     Route::get('/cdn/storage/blob/{filename}', [CDNController::class, 'serveFile'])->name('cdn.serve');
+
+    Route::get('/server/{any?}', function () {
+        // Get dynamic data from DataStoreController
+       
+        
+        return view('wrapper', );
+    })->where('any', '.*');
 
     
     
@@ -164,7 +172,15 @@ Route::middleware(['web'])->group(function () {
 
 // Dashboard route, accessible only to authenticated users
 Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
+    $start = microtime(true);
+
+    // Prepare data here if any
+    $response = Inertia::render('Dashboard');
+
+    $duration = microtime(true) - $start;
+    Log::info("Dashboard data prep took: {$duration} seconds");
+
+    return $response;
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 // Protected routes requiring authentication

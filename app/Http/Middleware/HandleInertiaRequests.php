@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Illuminate\Support\Facades\Log;
 use App\Services\PterodactylService;
+use Illuminate\Support\Facades\Cache;
+use App\Jobs\UpdateUserResources;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -22,6 +24,13 @@ class HandleInertiaRequests extends Middleware
      * @var PterodactylService
      */
     protected $pterodactylService;
+    
+    /**
+     * Request start time.
+     *
+     * @var float
+     */
+    protected $startTime;
 
     /**
      * Create a new middleware instance.
@@ -31,6 +40,7 @@ class HandleInertiaRequests extends Middleware
     public function __construct(PterodactylService $pterodactylService)
     {
         $this->pterodactylService = $pterodactylService;
+        $this->startTime = microtime(true);
     }
 
     /**
@@ -40,127 +50,152 @@ class HandleInertiaRequests extends Middleware
      * @return array
      */
     public function share(Request $request): array
-{
-    $user = $request->user();
+    {
+        $this->startTime = microtime(true);
+        $user = $request->user();
 
-    // Initialize totalResources with default zero values
-    $totalResources = [
-        'memory' => 0,
-        'swap'   => 0,
-        'disk'   => 0,
-        'io'     => 0,
-        'cpu'    => 0,
-        'databases' => 0,
-        'allocations' => 0,
-        'backups' => 0,
-    ];
+        // Initialize totalResources with default zero values
+        $totalResources = [
+            'memory' => 0,
+            'swap'   => 0,
+            'disk'   => 0,
+            'io'     => 0,
+            'cpu'    => 0,
+            'databases' => 0,
+            'allocations' => 0,
+            'backups' => 0,
+            'servers' => 0,
+        ];
 
-    $shopPrices = config('shop.prices');
+        $shopPrices = config('shop.prices');
 
-    if ($user && $user->pterodactyl_id) {
-        try {
-            $servers = $this->pterodactylService->getUserServers($user->pterodactyl_id);
-
-            // Check if $servers is a non-empty array
-            if (!empty($servers) && is_array($servers)) {
-                foreach ($servers as $server) {
-                    // Ensure 'attributes' and 'limits' exist to prevent undefined index errors
-                    if (isset($server['attributes']['limits'])) {
-                        $limits = $server['attributes']['limits'];
-
-                        // Safely add each limit, defaulting to 0 if not set
-                        $totalResources['memory'] += isset($limits['memory']) ? (int)$limits['memory'] : 0;
-                        $totalResources['swap']   += isset($limits['swap']) ? (int)$limits['swap'] : 0;
-                        $totalResources['disk']   += isset($limits['disk']) ? (int)$limits['disk'] : 0;
-                        $totalResources['io']     += isset($limits['io']) ? (int)$limits['io'] : 0;
-                        $totalResources['cpu']    += isset($limits['cpu']) ? (int)$limits['cpu'] : 0;
-                    } else {
-                        Log::warning("Server data malformed for user ID {$user->pterodactyl_id}.");
-                    }
-
-                    // Ensure 'feature_limits' exist to prevent undefined index errors
-                    if (isset($server['attributes']['feature_limits'])) {
-                        $featureLimits = $server['attributes']['feature_limits'];
-
-                        // Safely add each feature limit, defaulting to 0 if not set
-                        $totalResources['databases'] += isset($featureLimits['databases']) ? (int)$featureLimits['databases'] : 0;
-                        $totalResources['allocations'] += isset($featureLimits['allocations']) ? (int)$featureLimits['allocations'] : 0;
-                        $totalResources['backups'] += isset($featureLimits['backups']) ? (int)$featureLimits['backups'] : 0;
-                    } else {
-                        Log::warning("Feature limits data malformed for user ID {$user->pterodactyl_id}.");
-                    }
+        if ($user && $user->pterodactyl_id) {
+            // Check if we need to refresh the cache or dispatch a background job
+            $cacheKey = 'user_resources_' . $user->id;
+            
+            // Force refresh if requested or if cache doesn't exist
+            $forceRefresh = $request->has('refresh_resources') || !Cache::has($cacheKey);
+            
+            if ($forceRefresh) {
+                // Dispatch job to update resources in the background
+                UpdateUserResources::dispatch($user->id);
+                
+                // Log that we're dispatching a job to update resources
+                Log::info("Dispatched UpdateUserResources job for user {$user->id}");
+                
+                // If no cached data exists yet, use the resources from the user model
+                if (!Cache::has($cacheKey) && !empty($user->resources)) {
+                    $totalResources = $user->resources;
                 }
-
-                // Update user's resources in database
-                $user->resources = [
-                    'cpu'         => $totalResources['cpu'],
-                    'memory'      => $totalResources['memory'],
-                    'disk'        => $totalResources['disk'],
-                    'databases'   => $totalResources['databases'],
-                    'allocations' => $totalResources['allocations'],
-                    'backups'     => $totalResources['backups'],
-                    'servers'     => count($servers),
-                ];
-                $user->save();
-
-                Log::info('Updated user resources:', $user->resources);
             } else {
-                // Log that no servers were found or $servers is not an array
-                Log::info("No servers found for user ID: {$user->pterodactyl_id}.");
-
-                // Optionally, ensure that 'servers' count is set to 0
-                $user->resources = [
-                    'cpu'         => 0,
-                    'memory'      => 0,
-                    'disk'        => 0,
-                    'databases'   => 0,
-                    'allocations' => 0,
-                    'backups'     => 0,
-                    'servers'     => 0,
-                ];
-                $user->save();
+                // Get cached resources if available
+                $cachedData = Cache::get($cacheKey);
+                
+                if ($cachedData) {
+                    $totalResources = $cachedData['totalResources'];
+                    Log::info("Using cached resources for user {$user->id}");
+                } else {
+                    // If no cache but we have resources in the user model
+                    $totalResources = $user->resources ?: $totalResources;
+                    
+                    // Store in cache for future requests
+                    Cache::put($cacheKey, [
+                        'totalResources' => $totalResources,
+                        'serverCount' => $totalResources['servers'] ?? 0
+                    ], 300);
+                }
             }
-        } catch (\Exception $e) {
-            Log::error('Failed to fetch/update server resources: ' . $e->getMessage());
-            // Depending on your application logic, you might want to handle this differently
-        }
-    } else {
-        if ($user) {
-            Log::warning("User ID {$user->id} does not have a pterodactyl_id.");
         } else {
-            Log::info("No authenticated user found.");
+            if ($user) {
+                Log::warning("User ID {$user->id} does not have a pterodactyl_id.");
+            } else {
+                Log::info("No authenticated user found.");
+            }
         }
+
+        $vmsEnabled = config('services.vms.enabled', false);
+        $vmsAccessLevel = env('VMS_ACCESS_LEVEL', 'null');
+
+        $vmsConfig = [
+            'enabled' => $vmsEnabled,
+            'accessLevel' => $vmsAccessLevel,
+        ];
+
+        // Calculate the time taken to process the request
+        $endTime = microtime(true);
+        $executionTime = round(($endTime - $this->startTime) * 1000, 2); // Convert to milliseconds
+
+        return array_merge(parent::share($request), [
+            'auth' => [
+                'user' => $user
+            ],
+            'shop' => [
+                'prices' => $shopPrices,
+                'userCoins' => $user ? $user->coins : 0,
+                'maxPurchaseAmounts' => [
+                    'cpu' => config('shop.max_cpu', 69),
+                    'memory' => config('shop.max_memory', 4096),
+                    'disk' => config('shop.max_disk', 10240),
+                    'databases' => config('shop.max_databases', 5),
+                    'allocations' => config('shop.max_allocations', 5),
+                    'backups' => config('shop.max_backups', 5),
+                ],
+            ],
+
+'flash' => [
+    'status' => fn () => $request->session()->get('status'),
+    'error' => fn () => $request->session()->get('error'),
+    'res' => fn () => $request->session()->get('res'),
+    'servers' => fn () => $request->session()->get('servers'),
+    'success' => fn () => $request->session()->get('success'),
+    'users' => fn () => $request->session()->get('users'),
+    'server_url' => fn () => $request->session()->get('server_url'),
+    'secerts' => fn () => $request->session()->get('secerts'),
+    'linkvertiseUrl' => fn () => $request->session()->get('linkvertiseUrl'),
+],
+            
+            
+            'totalResources' => $totalResources,
+            'linkvertiseEnabled' => config('linkvertise.enabled'),
+            'linkvertiseId'      => config('linkvertise.id'),
+            'pterodactyl_URL'    => env('PTERODACTYL_API_URL'),
+            'vmsConfig'          => $vmsConfig,
+            'debug' => [
+                'requestTime' => $executionTime . 'ms',
+                'requestStarted' => date('Y-m-d H:i:s', (int)$this->startTime),
+                'requestEnded' => date('Y-m-d H:i:s', (int)$endTime),
+                'requestPath' => $request->path(),
+                'requestMethod' => $request->method(),
+                'serverLoad' => sys_getloadavg()[0],
+                'memory' => round(memory_get_usage() / 1024 / 1024, 2) . 'MB',
+                'cacheHit' => !($request->has('refresh_resources') || !Cache::has('user_resources_' . ($user ? $user->id : 0)))
+            ]
+        ]);
     }
 
-    $vmsEnabled = config('services.vms.enabled', false);
-    $vmsAccessLevel = env('VMS_ACCESS_LEVEL', 'null');
-
-    $vmsConfig = [
-        'enabled' => $vmsEnabled,
-        'accessLevel' => $vmsAccessLevel,
-    ];
-
-    return array_merge(parent::share($request), [
-        'auth' => [
-            'user' => $user
-        ],
-        'shop' => [
-            'prices' => $shopPrices,
-            'userCoins' => $user ? $user->coins : 0,
-            'maxPurchaseAmounts' => [
-                'cpu' => config('shop.max_cpu', 69),
-                'memory' => config('shop.max_memory', 4096),
-                'disk' => config('shop.max_disk', 10240),
-                'databases' => config('shop.max_databases', 5),
-                'allocations' => config('shop.max_allocations', 5),
-                'backups' => config('shop.max_backups', 5),
-            ],
-        ],
-        'totalResources' => $totalResources,
-        'linkvertiseEnabled' => config('linkvertise.enabled'),
-        'linkvertiseId'      => config('linkvertise.id'),
-        'pterodactyl_URL'    => env('PTERODACTYL_API_URL'),
-        'vmsConfig'          => $vmsConfig,
-    ]);
-}
+    /**
+     * Handle the incoming request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure  $next
+     * @return \Illuminate\Http\Response
+     */
+    public function handle(Request $request, \Closure $next)
+    {
+        $this->startTime = microtime(true);
+        
+        $response = parent::handle($request, $next);
+        
+        $endTime = microtime(true);
+        $executionTime = round(($endTime - $this->startTime) * 1000, 2);
+        
+        // Log the request timing
+        Log::debug("Request processed in {$executionTime}ms", [
+            'path' => $request->path(),
+            'method' => $request->method(),
+            'ip' => $request->ip()
+        ]);
+        
+        return $response;
+    }
 }

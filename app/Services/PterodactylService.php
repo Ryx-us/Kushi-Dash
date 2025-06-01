@@ -6,6 +6,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Promise\Utils;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Request;
+use Illuminate\Support\Facades\Cache;
 
 class PterodactylService
 {

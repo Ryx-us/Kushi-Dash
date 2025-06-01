@@ -1,1 +1,0 @@
-import{q as e,j as a}from"./app-Dm8cIE4T.js";function m(s){const{props:{companyLogo:o,companyName:t}}=e();return a.jsxs("div",{className:"flex items-center",children:[a.jsx("img",{...s,src:o,alt:"Company Logo",className:"h-9 w-auto"}),a.jsx("span",{className:"ml-2 text-gray-800 dark:text-gray-200",children:t})]})}export{m as A};

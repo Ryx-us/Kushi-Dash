@@ -1,0 +1,1 @@
+import{j as d,$ as r}from"./app-CPOEIljs.js";const a=()=>d.jsxs("div",{children:[d.jsx(r,{title:"Admin Dashboard"}),d.jsx("h1",{children:"Admin Dashboard"}),d.jsx("p",{children:"Welcome to the admin dashboard retard."})]});export{a as default};

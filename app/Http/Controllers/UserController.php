@@ -201,8 +201,8 @@ class UserController extends Controller
         
         return response()->json([
             'success' => false,
-            'message' => 'Internal server error'
-        ], 500);
+            'message' => 'SOmething bad'
+        ], 503);
     }
 }
 
