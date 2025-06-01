@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { Card } from "@/components/ui/card"
 
 const funFacts = [
   "The first computer bug was an actual bug - a moth trapped in a Harvard Mark II computer in 1947.",
@@ -13,16 +14,6 @@ const funFacts = [
   "The first web browser was called 'WorldWideWeb' and was created by Tim Berners-Lee in 1990.",
   "The Firefox logo isn't a fox. It's actually a red panda.",
   "The term 'bug' to describe computer glitches was popularized by Grace Hopper.",
-  "The first 1 GB hard disk drive was announced in 1980 and weighed 550 pounds.",
-  "More Google searches are done on mobile devices than on computers.",
-  "The Konami Code (↑ ↑ ↓ ↓ ← → ← → B A) was created in 1986.",
-  "An average web page today requires over 87 HTTP requests.",
-  "The first smartphone was created by IBM in 1992 called the Simon Personal Communicator.",
-  "The first computer mouse was made of wood.",
-  "YouTube was founded by former PayPal employees.",
-  "The term 'robot' comes from the Czech word 'robota' meaning forced labor.",
-  "The first computer game was created in 1961 called 'Spacewar!'",
-  "75% of all JavaScript errors occur in Internet Explorer 6-8.",
 ]
 
 const LoadingScreen = ({ duration = 250 }) => {
@@ -31,16 +22,13 @@ const LoadingScreen = ({ duration = 250 }) => {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    // Select a random fact
     const randomFact = funFacts[Math.floor(Math.random() * funFacts.length)]
     setFact(randomFact)
 
-    // Show the loader after a brief delay to avoid flickering on fast loads
     const showTimer = setTimeout(() => {
       setVisible(true)
     }, duration)
 
-    // Animated progress bar
     const progressInterval = setInterval(() => {
       setProgress((prev) => {
         const newProgress = prev + (100 - prev) * 0.08
@@ -57,40 +45,38 @@ const LoadingScreen = ({ duration = 250 }) => {
   if (!visible) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white">
-      {/* Main Content */}
-      <div className="flex flex-col items-center space-y-12 max-w-md mx-auto px-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-black/80 opacity-30  backdrop-blur-md">
+      <Card className="text-center space-y-8 max-w-md mx-auto px-6 py-4">
         {/* Brand */}
-        <div className="text-center space-y-3">
-          <h1 className="text-4xl font-light tracking-tight text-gray-900">Kushi-Dash</h1>
-          <p className="text-lg font-light text-gray-600">Preparing your experience</p>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-light tracking-tight text-gray-900">Kushi-Dash</h1>
+          <p className="text-sm text-gray-500">Loading your experience</p>
         </div>
 
-        {/* Loading Indicator */}
-        <div className="relative">
-          <div className="w-6 h-6 border border-gray-200 rounded-full animate-spin border-t-gray-900"></div>
+        {/* Elegant Spinner */}
+        <div className="flex justify-center">
+          <div className="relative w-8 h-8">
+            <div className="absolute inset-0 border-2 border-gray-200 rounded-full"></div>
+            <div className="absolute inset-0 border-2 border-transparent border-t-gray-900 rounded-full animate-spin"></div>
+          </div>
         </div>
 
-        {/* Progress Bar */}
-        <div className="w-80 space-y-4">
-          <div className="w-full bg-gray-100 rounded-full h-0.5 overflow-hidden">
+        {/* Progress */}
+        <div className="space-y-3">
+          <div className="w-64 h-px bg-gray-200 mx-auto overflow-hidden">
             <div
-              className="h-full bg-gray-900 rounded-full transition-all duration-300 ease-out"
+              className="h-full bg-gray-900 transition-all duration-300 ease-out"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <div className="text-center">
-            <span className="text-sm font-light text-gray-500">{Math.round(progress)}%</span>
-          </div>
+          <p className="text-xs text-gray-400">{Math.round(progress)}% complete</p>
         </div>
-      </div>
 
-      {/* Fun Fact - Bottom */}
-      <div className="absolute bottom-16 left-0 right-0 px-8">
-        <div className="max-w-lg mx-auto text-center">
-          <p className="text-sm font-light text-gray-400 leading-relaxed">{fact}</p>
+        {/* Fun Fact */}
+        <div className="pt-4">
+          <p className="text-xs text-gray-400 leading-relaxed max-w-xs mx-auto">{fact}</p>
         </div>
-      </div>
+      </Card>
     </div>
   )
 }
