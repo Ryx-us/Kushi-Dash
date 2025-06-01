@@ -49,7 +49,7 @@ const LoadingScreen = ({ duration = 250 }) => {
       <Card className="text-center space-y-8 max-w-md mx-auto px-6 py-4">
         {/* Brand */}
         <div className="space-y-2">
-          <h1 className="text-3xl font-light tracking-tight text-gray-900">Kushi-Dash</h1>
+          <h1 className="text-3xl font-light tracking-tight ">Kushi-Dash</h1>
           <p className="text-sm text-gray-500">Fetching the content for your next adventure!</p>
         </div>
 
