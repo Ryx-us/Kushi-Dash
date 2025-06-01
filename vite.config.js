@@ -10,4 +10,11 @@ export default defineConfig({
         }),
         react(),
     ],
+    // Add these basic optimizations
+    build: {
+        chunkSizeWarningLimit: 1000,
+    },
+    resolve: {
+        dedupe: ['react', 'react-dom']
+    }
 });
