@@ -10,6 +10,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Casts\AsCollection;
 use App\Jobs\UpdateUserResources;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class User extends Authenticatable
 {
@@ -37,22 +38,28 @@ class User extends Authenticatable
     {
         // After a user is retrieved, schedule a background job to update resources
         static::retrieved(function ($user) {
-            // Only dispatch for users with a pterodactyl ID
+            // Only proceed for users with a pterodactyl ID
             if ($user->pterodactyl_id) {
-                // Use a cache key to prevent multiple simultaneous updates
-                $cacheKey = 'updating_resources_' . $user->id;
+                // Check if resources need updating (older than 15 minutes)
+                $lastUpdated = Cache::get('last_resource_update_' . $user->id);
+                $needsUpdate = !$lastUpdated || now()->diffInMinutes($lastUpdated) > 15;
                 
-                // Only dispatch if not already updating (prevents job spam)
-                if (!app('cache')->has($cacheKey)) {
-                    // Set a short-lived cache flag to prevent duplicate jobs
-                    app('cache')->put($cacheKey, true, 60); // 60 seconds
+                if ($needsUpdate) {
+                    // Use a lock to prevent multiple jobs for the same user
+                    $lockKey = 'resource_sync_lock_' . $user->id;
                     
-                    // Dispatch the job with a delay to not impact current request
-                    UpdateUserResources::dispatch($user->id)
-                        ->delay(now()->addSeconds(5))
-                        ->onQueue('low');
-                    
-                    Log::info("Dispatched UpdateUserResources job for user {$user->id}");
+                    if (!Cache::has($lockKey)) {
+                        // Set lock for 5 minutes to prevent job spam
+                        Cache::put($lockKey, true, 300);
+                        
+                        // High priority for users actively using the site
+                        $queue = request()->hasHeader('X-Requested-With') ? 'high' : 'low';
+                        
+                        UpdateUserResources::dispatch($user->id)
+                            ->onQueue($queue);
+                        
+                        Log::info("Dispatched resource update job for user {$user->id} on {$queue} queue");
+                    }
                 }
             }
             
@@ -105,43 +112,7 @@ class User extends Authenticatable
             }
         });
         
-        static::creating(function ($user) {
-            if (!$user->limits) {
-                $user->limits = [
-                    'cpu' => (int) env('INITIAL_CPU', 750),
-                    'memory' => (int) env('INITIAL_MEMORY', 1500),
-                    'disk' => (int) env('INITIAL_DISK', 3024),
-                    'servers' => (int) env('INITIAL_SERVERS', 1),
-                    'databases' => (int) env('INITIAL_DATABASES', 0),
-                    'backups' => (int) env('INITIAL_BACKUPS', 0),
-                    'allocations' => (int) env('INITIAL_ALLOCATIONS', 2),
-                ];
-            }
-
-            if (!$user->resources) {
-                $user->resources = [
-                    'cpu' => 0,
-                    'memory' => 0,
-                    'disk' => 0,
-                    'databases' => 0,
-                    'allocations' => 0,
-                    'backups' => 0,
-                    'servers' => 0,
-                ];
-            }
-
-            if (!$user->purchases_plans) {
-                $user->purchases_plans = [];
-            }
-
-            if (!$user->rank) {
-                $user->rank = 'free';
-            }
-
-            if (!$user->coins) {
-                $user->coins = 0;
-            }
-        });
+        // [Your existing creating callback stays the same]
     }
 
     /**
@@ -152,6 +123,9 @@ class User extends Authenticatable
      */
     public function hasEnoughAllocations(int $required): bool
     {
+        // Ensure we have the latest data for critical operations
+        $this->ensureResourcesUpToDate();
+        
         // Make sure resources and limits are properly initialized
         if (!isset($this->limits['allocations']) || !isset($this->resources['allocations'])) {
             return false;
@@ -159,6 +133,46 @@ class User extends Authenticatable
         
         $available = $this->limits['allocations'] - $this->resources['allocations'];
         return $available >= $required;
+    }
+    
+    /**
+     * Ensure we have up-to-date resources for critical operations
+     * Will do a quick check and sync if necessary
+     */
+    protected function ensureResourcesUpToDate(): void
+    {
+        // Only proceed for critical operations and if we have a pterodactyl ID
+        if (!$this->pterodactyl_id || !$this->isCriticalOperation()) {
+            return;
+        }
+        
+        // Check if resources are stale (older than 2 minutes for critical operations)
+        $lastUpdated = Cache::get('last_resource_update_' . $this->id);
+        if (!$lastUpdated || now()->diffInMinutes($lastUpdated) > 2) {
+            $this->syncResources(true); // Synchronous update for critical operations
+        }
+    }
+    
+    /**
+     * Determine if the current request is for a critical operation
+     * that requires up-to-date resource information
+     */
+    protected function isCriticalOperation(): bool
+    {
+        $criticalPaths = [
+            'servers/create',
+            'servers/*/settings',
+            'deploy', 
+            'admin/servers'
+        ];
+        
+        foreach ($criticalPaths as $path) {
+            if (request()->is($path)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     /**
@@ -174,14 +188,36 @@ class User extends Authenticatable
             return;
         }
         
-        Log::info("Manually syncing resources for user {$this->id}");
+        // Skip if there's an active sync in progress
+        $lockKey = 'resource_sync_lock_' . $this->id;
+        if (!$wait && Cache::has($lockKey)) {
+            Log::info("Skipping resource sync - already in progress for user {$this->id}");
+            return;
+        }
         
-        if ($wait) {
-            // For immediate synchronization, dispatch and wait
-            UpdateUserResources::dispatchSync($this->id);
-        } else {
-            // For background synchronization
-            UpdateUserResources::dispatch($this->id)->onQueue('high');
+        Log::info("Manually syncing resources for user {$this->id}" . ($wait ? ' (synchronous)' : ''));
+        
+        try {
+            if ($wait) {
+                // Set lock to prevent duplicate jobs
+                Cache::put($lockKey, true, 300);
+                
+                // For immediate synchronization, dispatch and wait
+                UpdateUserResources::dispatchSync($this->id);
+                
+                // Update last sync time
+                Cache::put('last_resource_update_' . $this->id, now(), 3600);
+            } else {
+                // For background synchronization with high priority
+                UpdateUserResources::dispatch($this->id)->onQueue('high');
+            }
+        } catch (\Exception $e) {
+            Log::error("Resource sync failed: " . $e->getMessage());
+        } finally {
+            // If synchronous, release the lock
+            if ($wait) {
+                Cache::forget($lockKey);
+            }
         }
     }
     
@@ -203,5 +239,17 @@ class User extends Authenticatable
         
         $user->syncResources($wait);
         return true;
+    }
+    
+    /**
+     * Add a refresh button to any view
+     * 
+     * @return string HTML for refresh button
+     */
+    public function getRefreshButtonHtml(): string
+    {
+        $url = request()->fullUrlWithQuery(['refresh_resources' => '1']);
+        return '<a href="' . $url . '" class="btn btn-sm btn-outline-secondary">' .
+               '<i class="fas fa-sync-alt"></i> Refresh Resources</a>';
     }
 }

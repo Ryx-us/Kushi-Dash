@@ -34,3 +34,25 @@ fix plan editing
 For mariadb 
 ###########################################
 
+
+
+# Kushi-Dash Queue Worker File
+# ----------------------------------
+
+[Unit]
+Description=universal Queue Worker
+After=redis-server.service
+
+[Service]
+# On some systems the user and group might be different.
+# Some systems use `apache` or `nginx` as the user and group.
+User=www-data
+Group=www-data
+Restart=always
+ExecStart=/usr/bin/php /var/www/Kushi-Dash/artisan queue:work --queue=high,standard,low --sleep=3 --tries=3
+StartLimitInterval=180
+StartLimitBurst=30
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
