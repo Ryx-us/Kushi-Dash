@@ -283,22 +283,7 @@ class ServerController extends Controller
 }
 
 
-/**
- * Check if the user has enough allocation slots available
- *
- * @param int $required Number of allocation slots required
- * @return bool
- */
-public function hasEnoughAllocations(int $required): bool
-{
-    // Make sure resources and limits are properly initialized
-    if (!isset($this->limits['allocations']) || !isset($this->resources['allocations'])) {
-        return false;
-    }
-    
-    $available = $this->limits['allocations'] - $this->resources['allocations'];
-    return $available >= $required;
-}
+
 
 public function update(Request $request, PterodactylService $pterodactylService, $serverId)
 {
