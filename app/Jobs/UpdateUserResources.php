@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Jobs;
 
 use Illuminate\Bus\Queueable;
@@ -11,7 +10,6 @@ use Illuminate\Queue\SerializesModels;
 use App\Models\User;
 use App\Services\PterodactylService;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
 
 class UpdateUserResources implements ShouldQueue
 {
@@ -19,7 +17,7 @@ class UpdateUserResources implements ShouldQueue
 
     protected $userId;
     
-    // Add these properties to prevent infinite retries
+    // Settings to prevent infinite retries
     public $tries = 3;
     public $backoff = 10;
 
@@ -37,16 +35,6 @@ class UpdateUserResources implements ShouldQueue
             Log::warning("UpdateUserResources job: User not found or no pterodactyl_id for user {$this->userId}");
             return;
         }
-
-        // Use a simple lock to prevent duplicate jobs
-        $lockKey = 'updating_resources_lock_' . $user->id;
-        if (Cache::has($lockKey)) {
-            Log::info("UpdateUserResources job: Skipping due to active lock for user {$user->id}");
-            return;
-        }
-        
-        // Set a lock for 5 minutes
-        Cache::put($lockKey, true, 300);
 
         $totalResources = [
             'memory' => 0, 
@@ -164,13 +152,6 @@ class UpdateUserResources implements ShouldQueue
                 } else {
                     Log::info("No resource changes for user {$user->id}");
                 }
-                
-                // Always update the cache with the latest data
-                Cache::put('user_resources_' . $user->id, [
-                    'totalResources' => $totalResources,
-                    'serverCount' => count($servers),
-                    'lastUpdated' => now()->toDateTimeString()
-                ], 300);
             } else {
                 // No servers found
                 Log::info("No servers found for user {$user->id} with pterodactyl_id {$user->pterodactyl_id}");
@@ -180,13 +161,6 @@ class UpdateUserResources implements ShouldQueue
                 // Update user model with zero resources
                 $user->resources = $totalResources;
                 $user->save();
-                
-                // Update cache
-                Cache::put('user_resources_' . $user->id, [
-                    'totalResources' => $totalResources,
-                    'serverCount' => 0,
-                    'lastUpdated' => now()->toDateTimeString()
-                ], 300);
             }
             
             $endTime = microtime(true);
@@ -199,21 +173,6 @@ class UpdateUserResources implements ShouldQueue
                 'userId' => $this->userId,
                 'trace' => $e->getTraceAsString()
             ]);
-            
-            // Even in case of error, we should cache what we have to prevent repeated failures
-            Cache::put('user_resources_' . $user->id, [
-                'totalResources' => $user->resources ?: $totalResources,
-                'serverCount' => $user->resources['servers'] ?? 0,
-                'lastUpdated' => now()->toDateTimeString(),
-                'error' => $e->getMessage()
-            ], 300);
-        } finally {
-            // Always release the lock, even if there's an exception
-            Cache::forget($lockKey);
         }
     }
-    
-    /**
-     * Add a method to get individual server details to PterodactylService class
-     */
 }

@@ -9,8 +9,8 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Casts\AsCollection;
 use App\Jobs\UpdateUserResources;
+use App\Services\PterodactylService;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
 
 class User extends Authenticatable
 {
@@ -33,37 +33,52 @@ class User extends Authenticatable
         'purchases_plans' => 'array',
     ];
 
-    // Add this method to initialize default values when a user is created
+    /**
+     * Initialize default values for new users
+     */
     protected static function booted()
     {
-        // After a user is retrieved, schedule a background job to update resources
-        static::retrieved(function ($user) {
-            // Only proceed for users with a pterodactyl ID
-            if ($user->pterodactyl_id) {
-                // Check if resources need updating (older than 15 minutes)
-                $lastUpdated = Cache::get('last_resource_update_' . $user->id);
-                $needsUpdate = !$lastUpdated || now()->diffInMinutes($lastUpdated) > 15;
-                
-                if ($needsUpdate) {
-                    // Use a lock to prevent multiple jobs for the same user
-                    $lockKey = 'resource_sync_lock_' . $user->id;
-                    
-                    if (!Cache::has($lockKey)) {
-                        // Set lock for 5 minutes to prevent job spam
-                        Cache::put($lockKey, true, 300);
-                        
-                        // High priority for users actively using the site
-                        $queue = request()->hasHeader('X-Requested-With') ? 'high' : 'low';
-                        
-                        UpdateUserResources::dispatch($user->id)
-                            ->onQueue($queue);
-                        
-                        Log::info("Dispatched resource update job for user {$user->id} on {$queue} queue");
-                    }
-                }
+        // Initialize defaults when creating a user
+        static::creating(function ($user) {
+            if (!$user->limits) {
+                $user->limits = [
+                    'cpu' => (int) env('INITIAL_CPU', 750),
+                    'memory' => (int) env('INITIAL_MEMORY', 1500),
+                    'disk' => (int) env('INITIAL_DISK', 3024),
+                    'servers' => (int) env('INITIAL_SERVERS', 1),
+                    'databases' => (int) env('INITIAL_DATABASES', 0),
+                    'backups' => (int) env('INITIAL_BACKUPS', 0),
+                    'allocations' => (int) env('INITIAL_ALLOCATIONS', 2),
+                ];
             }
-            
-            // Continue with existing logic for setting default values
+
+            if (!$user->resources) {
+                $user->resources = [
+                    'cpu' => 0,
+                    'memory' => 0,
+                    'disk' => 0,
+                    'databases' => 0,
+                    'allocations' => 0,
+                    'backups' => 0,
+                    'servers' => 0,
+                ];
+            }
+
+            if (!$user->purchases_plans) {
+                $user->purchases_plans = [];
+            }
+
+            if (!$user->rank) {
+                $user->rank = 'free';
+            }
+
+            if (!$user->coins) {
+                $user->coins = 0;
+            }
+        });
+        
+        // Make sure defaults exist when retrieving a user
+        static::retrieved(function ($user) {
             $dirty = false;
 
             if ($user->limits === null) {
@@ -110,11 +125,14 @@ class User extends Authenticatable
             if ($dirty) {
                 $user->save();
             }
+            
+            // Always update resources when model is accessed
+            if ($user->pterodactyl_id) {
+                $user->refreshResources();
+            }
         });
-        
-        // [Your existing creating callback stays the same]
     }
-
+    
     /**
      * Check if the user has enough allocation slots available
      *
@@ -123,8 +141,8 @@ class User extends Authenticatable
      */
     public function hasEnoughAllocations(int $required): bool
     {
-        // Ensure we have the latest data for critical operations
-        $this->ensureResourcesUpToDate();
+        // Always refresh resources before checking
+        $this->refreshResources();
         
         // Make sure resources and limits are properly initialized
         if (!isset($this->limits['allocations']) || !isset($this->resources['allocations'])) {
@@ -136,120 +154,178 @@ class User extends Authenticatable
     }
     
     /**
-     * Ensure we have up-to-date resources for critical operations
-     * Will do a quick check and sync if necessary
+     * Refresh user resources directly from Pterodactyl
+     * No caching involved, always gets fresh data
+     *
+     * @return array The updated resources
      */
-    protected function ensureResourcesUpToDate(): void
-    {
-        // Only proceed for critical operations and if we have a pterodactyl ID
-        if (!$this->pterodactyl_id || !$this->isCriticalOperation()) {
-            return;
-        }
-        
-        // Check if resources are stale (older than 2 minutes for critical operations)
-        $lastUpdated = Cache::get('last_resource_update_' . $this->id);
-        if (!$lastUpdated || now()->diffInMinutes($lastUpdated) > 2) {
-            $this->syncResources(true); // Synchronous update for critical operations
-        }
-    }
-    
-    /**
-     * Determine if the current request is for a critical operation
-     * that requires up-to-date resource information
-     */
-    protected function isCriticalOperation(): bool
-    {
-        $criticalPaths = [
-            'servers/create',
-            'servers/*/settings',
-            'deploy', 
-            'admin/servers'
-        ];
-        
-        foreach ($criticalPaths as $path) {
-            if (request()->is($path)) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Manually sync resources for this user
-     * 
-     * @param bool $wait Whether to wait for the job to complete
-     * @return void
-     */
-    public function syncResources(bool $wait = false): void
+    public function refreshResources(): array
     {
         if (!$this->pterodactyl_id) {
-            Log::warning("Cannot sync resources: No pterodactyl_id for user {$this->id}");
-            return;
+            Log::warning("Cannot refresh resources: No pterodactyl_id for user {$this->id}");
+            return $this->resources ?: [];
         }
-        
-        // Skip if there's an active sync in progress
-        $lockKey = 'resource_sync_lock_' . $this->id;
-        if (!$wait && Cache::has($lockKey)) {
-            Log::info("Skipping resource sync - already in progress for user {$this->id}");
-            return;
-        }
-        
-        Log::info("Manually syncing resources for user {$this->id}" . ($wait ? ' (synchronous)' : ''));
         
         try {
-            if ($wait) {
-                // Set lock to prevent duplicate jobs
-                Cache::put($lockKey, true, 300);
+            // Get the Pterodactyl service
+            $pterodactylService = app(PterodactylService::class);
+            
+            // Initialize resource arrays
+            $totalResources = [
+                'memory' => 0, 
+                'swap' => 0, 
+                'disk' => 0, 
+                'io' => 0, 
+                'cpu' => 0,
+                'databases' => 0, 
+                'allocations' => 0, 
+                'backups' => 0, 
+                'servers' => 0
+            ];
+            
+            // Get all servers for the user
+            $servers = $pterodactylService->getUserServers($this->pterodactyl_id);
+            
+            if (!empty($servers) && is_array($servers)) {
+                foreach ($servers as $server) {
+                    // Skip invalid data
+                    if (!isset($server['attributes'])) {
+                        continue;
+                    }
+                    
+                    // Handle normalization issue
+                    if (isset($server['attributes']['limits']) && 
+                        (is_string($server['attributes']['limits']['memory'] ?? null) && 
+                         strpos($server['attributes']['limits']['memory'] ?? '', 'Over 9 levels deep') !== false)) {
+                        
+                        // Get detailed server data
+                        $serverId = $server['attributes']['id'] ?? null;
+                        if ($serverId) {
+                            $serverDetails = $pterodactylService->getServerById($serverId);
+                            if ($serverDetails && isset($serverDetails['attributes']['limits'])) {
+                                // Process limits and feature limits
+                                $limits = $serverDetails['attributes']['limits'];
+                                $featureLimits = $serverDetails['attributes']['feature_limits'] ?? [];
+                                
+                                $totalResources['memory'] += is_numeric($limits['memory'] ?? null) ? (int)$limits['memory'] : 0;
+                                $totalResources['swap'] += is_numeric($limits['swap'] ?? null) ? (int)$limits['swap'] : 0;
+                                $totalResources['disk'] += is_numeric($limits['disk'] ?? null) ? (int)$limits['disk'] : 0;
+                                $totalResources['io'] += is_numeric($limits['io'] ?? null) ? (int)$limits['io'] : 0;
+                                $totalResources['cpu'] += is_numeric($limits['cpu'] ?? null) ? (int)$limits['cpu'] : 0;
+                                
+                                $totalResources['databases'] += is_numeric($featureLimits['databases'] ?? null) ? (int)$featureLimits['databases'] : 0;
+                                $totalResources['allocations'] += is_numeric($featureLimits['allocations'] ?? null) ? (int)$featureLimits['allocations'] : 0;
+                                $totalResources['backups'] += is_numeric($featureLimits['backups'] ?? null) ? (int)$featureLimits['backups'] : 0;
+                            } else {
+                                // Use defaults if we can't get details
+                                $totalResources['memory'] += 1024;
+                                $totalResources['disk'] += 10000;
+                                $totalResources['cpu'] += 100;
+                                $totalResources['allocations'] += 1;
+                            }
+                        }
+                        
+                        continue;
+                    }
+                    
+                    // Regular processing for correctly formatted servers
+                    if (isset($server['attributes']['limits'])) {
+                        $limits = $server['attributes']['limits'];
+                        
+                        $totalResources['memory'] += is_numeric($limits['memory'] ?? null) ? (int)$limits['memory'] : 0;
+                        $totalResources['swap'] += is_numeric($limits['swap'] ?? null) ? (int)$limits['swap'] : 0;
+                        $totalResources['disk'] += is_numeric($limits['disk'] ?? null) ? (int)$limits['disk'] : 0;
+                        $totalResources['io'] += is_numeric($limits['io'] ?? null) ? (int)$limits['io'] : 0;
+                        $totalResources['cpu'] += is_numeric($limits['cpu'] ?? null) ? (int)$limits['cpu'] : 0;
+                    }
+                    
+                    // Process feature limits
+                    if (isset($server['attributes']['feature_limits'])) {
+                        $featureLimits = $server['attributes']['feature_limits'];
+                        
+                        $totalResources['databases'] += is_numeric($featureLimits['databases'] ?? null) ? (int)$featureLimits['databases'] : 0;
+                        $totalResources['allocations'] += is_numeric($featureLimits['allocations'] ?? null) ? (int)$featureLimits['allocations'] : 0;
+                        $totalResources['backups'] += is_numeric($featureLimits['backups'] ?? null) ? (int)$featureLimits['backups'] : 0;
+                    }
+                }
                 
-                // For immediate synchronization, dispatch and wait
-                UpdateUserResources::dispatchSync($this->id);
-                
-                // Update last sync time
-                Cache::put('last_resource_update_' . $this->id, now(), 3600);
+                $totalResources['servers'] = count($servers);
             } else {
-                // For background synchronization with high priority
-                UpdateUserResources::dispatch($this->id)->onQueue('high');
+                // No servers found
+                Log::info("No servers found for user {$this->id}");
+                $totalResources['servers'] = 0;
             }
+            
+            // Always update resources in the database
+            $this->resources = $totalResources;
+            $this->save();
+            
+            Log::info("Updated resources for user {$this->id}", [
+                'resources' => $totalResources
+            ]);
+            
+            return $totalResources;
+            
         } catch (\Exception $e) {
-            Log::error("Resource sync failed: " . $e->getMessage());
-        } finally {
-            // If synchronous, release the lock
-            if ($wait) {
-                Cache::forget($lockKey);
-            }
+            Log::error("Failed to refresh resources: " . $e->getMessage(), [
+                'userId' => $this->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Return current resources in case of error
+            return $this->resources ?: [];
         }
     }
     
     /**
-     * Static method to sync resources for a user by ID
-     * 
-     * @param int $userId The user ID
-     * @param bool $wait Whether to wait for the job to complete
-     * @return bool Success or failure
+     * Get available resources (calculated on the fly)
+     *
+     * @return array
      */
-    public static function syncResourcesById(int $userId, bool $wait = false): bool
+    public function getAvailableResources(): array
+    {
+        // Always refresh before calculating
+        $this->refreshResources();
+        
+        $available = [];
+        
+        foreach ($this->limits as $key => $limit) {
+            $used = $this->resources[$key] ?? 0;
+            $available[$key] = $limit - $used;
+        }
+        
+        return $available;
+    }
+    
+    /**
+     * Refresh resources for a user by ID (static helper)
+     *
+     * @param int $userId
+     * @return bool
+     */
+    public static function refreshResourcesById(int $userId): bool
     {
         $user = self::find($userId);
         
         if (!$user) {
-            Log::error("User not found for resource sync: {$userId}");
+            Log::error("User not found for resource refresh: {$userId}");
             return false;
         }
         
-        $user->syncResources($wait);
+        $user->refreshResources();
         return true;
     }
     
     /**
-     * Add a refresh button to any view
-     * 
-     * @return string HTML for refresh button
+     * Get a refresh button for views
+     *
+     * @return string
      */
     public function getRefreshButtonHtml(): string
     {
-        $url = request()->fullUrlWithQuery(['refresh_resources' => '1']);
-        return '<a href="' . $url . '" class="btn btn-sm btn-outline-secondary">' .
-               '<i class="fas fa-sync-alt"></i> Refresh Resources</a>';
+        $url = request()->fullUrlWithQuery(['refresh' => time()]);
+        return '<a href="' . $url . '" class="inline-flex items-center px-3 py-2 border border-zinc-300 dark:border-zinc-700 shadow-sm text-sm leading-4 font-medium rounded-md text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-500">' .
+               '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>' .
+               'Refresh Resources</a>';
     }
 }
