@@ -1,5 +1,6 @@
 <?php
 
+
 namespace App\Jobs;
 
 use Illuminate\Bus\Queueable;
@@ -17,6 +18,10 @@ class UpdateUserResources implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected $userId;
+    
+    // Add these properties to prevent infinite retries
+    public $tries = 3;
+    public $backoff = 10;
 
     public function __construct($userId)
     {
@@ -32,6 +37,16 @@ class UpdateUserResources implements ShouldQueue
             Log::warning("UpdateUserResources job: User not found or no pterodactyl_id for user {$this->userId}");
             return;
         }
+
+        // Use a simple lock to prevent duplicate jobs
+        $lockKey = 'updating_resources_lock_' . $user->id;
+        if (Cache::has($lockKey)) {
+            Log::info("UpdateUserResources job: Skipping due to active lock for user {$user->id}");
+            return;
+        }
+        
+        // Set a lock for 5 minutes
+        Cache::put($lockKey, true, 300);
 
         $totalResources = [
             'memory' => 0, 
@@ -50,26 +65,76 @@ class UpdateUserResources implements ShouldQueue
             
             if (!empty($servers) && is_array($servers)) {
                 foreach ($servers as $server) {
-                    // Calculate limits
+                    // Check if we have valid data format
+                    if (!isset($server['attributes'])) {
+                        Log::warning("Invalid server data format for user {$user->id}", [
+                            'server' => $server
+                        ]);
+                        continue;
+                    }
+                    
+                    // Handle normalization issue
+                    if (isset($server['attributes']['limits']) && 
+                        (is_string($server['attributes']['limits']['memory'] ?? null) && 
+                         strpos($server['attributes']['limits']['memory'] ?? '', 'Over 9 levels deep') !== false)) {
+                        
+                        Log::warning("Detected normalization issue in API response for user {$user->id}");
+                        
+                        // Get server details individually with correct depth
+                        try {
+                            $serverId = $server['attributes']['id'] ?? null;
+                            if ($serverId) {
+                                $serverDetails = $pterodactylService->getServerById($serverId);
+                                if ($serverDetails && isset($serverDetails['attributes']['limits'])) {
+                                    // Use these details instead
+                                    $limits = $serverDetails['attributes']['limits'];
+                                    $featureLimits = $serverDetails['attributes']['feature_limits'] ?? [];
+                                    
+                                    // Process the correct limits
+                                    $totalResources['memory'] += is_numeric($limits['memory'] ?? null) ? (int)$limits['memory'] : 0;
+                                    $totalResources['swap'] += is_numeric($limits['swap'] ?? null) ? (int)$limits['swap'] : 0;
+                                    $totalResources['disk'] += is_numeric($limits['disk'] ?? null) ? (int)$limits['disk'] : 0;
+                                    $totalResources['io'] += is_numeric($limits['io'] ?? null) ? (int)$limits['io'] : 0;
+                                    $totalResources['cpu'] += is_numeric($limits['cpu'] ?? null) ? (int)$limits['cpu'] : 0;
+                                    
+                                    // Process feature limits
+                                    $totalResources['databases'] += is_numeric($featureLimits['databases'] ?? null) ? (int)$featureLimits['databases'] : 0;
+                                    $totalResources['allocations'] += is_numeric($featureLimits['allocations'] ?? null) ? (int)$featureLimits['allocations'] : 0;
+                                    $totalResources['backups'] += is_numeric($featureLimits['backups'] ?? null) ? (int)$featureLimits['backups'] : 0;
+                                }
+                            }
+                        } catch (\Exception $e) {
+                            Log::error("Failed to get individual server details: " . $e->getMessage());
+                            // Default fallback values - estimate based on your system's defaults
+                            $totalResources['memory'] += 1024; // 1GB default
+                            $totalResources['disk'] += 10000;  // 10GB default
+                            $totalResources['cpu'] += 100;     // 100% default
+                            $totalResources['allocations'] += 1; // 1 allocation default
+                        }
+                        
+                        continue; // Skip regular processing for this server
+                    }
+                    
+                    // Regular processing for correctly formatted servers
                     if (isset($server['attributes']['limits'])) {
                         $limits = $server['attributes']['limits'];
                         
-                        // Safely add each limit, defaulting to 0 if not set
-                        $totalResources['memory'] += isset($limits['memory']) ? (int)$limits['memory'] : 0;
-                        $totalResources['swap']   += isset($limits['swap']) ? (int)$limits['swap'] : 0;
-                        $totalResources['disk']   += isset($limits['disk']) ? (int)$limits['disk'] : 0;
-                        $totalResources['io']     += isset($limits['io']) ? (int)$limits['io'] : 0;
-                        $totalResources['cpu']    += isset($limits['cpu']) ? (int)$limits['cpu'] : 0;
+                        // Safely add each limit, defaulting to 0 if not set or not numeric
+                        $totalResources['memory'] += is_numeric($limits['memory'] ?? null) ? (int)$limits['memory'] : 0;
+                        $totalResources['swap'] += is_numeric($limits['swap'] ?? null) ? (int)$limits['swap'] : 0;
+                        $totalResources['disk'] += is_numeric($limits['disk'] ?? null) ? (int)$limits['disk'] : 0;
+                        $totalResources['io'] += is_numeric($limits['io'] ?? null) ? (int)$limits['io'] : 0;
+                        $totalResources['cpu'] += is_numeric($limits['cpu'] ?? null) ? (int)$limits['cpu'] : 0;
                     }
                     
                     // Calculate feature limits
                     if (isset($server['attributes']['feature_limits'])) {
                         $featureLimits = $server['attributes']['feature_limits'];
                         
-                        // Safely add each feature limit, defaulting to 0 if not set
-                        $totalResources['databases'] += isset($featureLimits['databases']) ? (int)$featureLimits['databases'] : 0;
-                        $totalResources['allocations'] += isset($featureLimits['allocations']) ? (int)$featureLimits['allocations'] : 0;
-                        $totalResources['backups'] += isset($featureLimits['backups']) ? (int)$featureLimits['backups'] : 0;
+                        // Safely add each feature limit, defaulting to 0 if not set or not numeric
+                        $totalResources['databases'] += is_numeric($featureLimits['databases'] ?? null) ? (int)$featureLimits['databases'] : 0;
+                        $totalResources['allocations'] += is_numeric($featureLimits['allocations'] ?? null) ? (int)$featureLimits['allocations'] : 0;
+                        $totalResources['backups'] += is_numeric($featureLimits['backups'] ?? null) ? (int)$featureLimits['backups'] : 0;
                     }
                 }
                 
@@ -142,6 +207,13 @@ class UpdateUserResources implements ShouldQueue
                 'lastUpdated' => now()->toDateTimeString(),
                 'error' => $e->getMessage()
             ], 300);
+        } finally {
+            // Always release the lock, even if there's an exception
+            Cache::forget($lockKey);
         }
     }
+    
+    /**
+     * Add a method to get individual server details to PterodactylService class
+     */
 }
