@@ -13,7 +13,7 @@ export default function ApplicationLogo(props) {
                 alt="Company Logo"
                 className="h-9 w-auto"
             />
-            <span className="ml-2 text-gray-800 dark:text-gray-200">{companyName}</span>
+
         </div>
     );
 }

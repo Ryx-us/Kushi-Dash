@@ -219,16 +219,78 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
 
 
 
+
 Route::middleware(['auth'])->group(function () {
     Route::get('/earn', [EarningController::class, 'earn'])->name('earn');
+    
+    
+
     Route::post('/generate-linkvertise', [EarningController::class, 'generateLinkvertiseLink'])->name('generate.linkvertise');
     Route::post('/shop/purchase', [UserController::class, 'purchaseResource']);
 
-        Route::get('/dashboard/servers/edit/{serverId}', [ServerController::class, 'edit'])->name('server.edit');
+    Route::get('/dashboard/servers/edit/{serverId}', [ServerController::class, 'edit'])->name('server.edit');
     Route::get('/user/plans/purchase/{planId}', [PlanController::class, 'purchase'])
     ->name('plans.purchase');
     
 });
+
+Route::get('checkout', function (Request $request) {
+        // Capture referrer information from different sources
+        $referrer = null;
+        
+        // 1. Check URL parameter 'ref'
+        if ($request->has('ref')) {
+            $referrer = $request->query('ref');
+        }
+        // 2. Check URL parameter 'utm_source'
+        else if ($request->has('utm_source')) {
+            $referrer = $request->query('utm_source');
+        }
+        // 3. Check URL parameter 'source'
+        else if ($request->has('source')) {
+            $referrer = $request->query('source');
+        }
+        // 4. Check HTTP referrer header
+        else if ($request->headers->has('referer')) {
+            // Extract domain from referer URL
+            $refererUrl = $request->headers->get('referer');
+            try {
+                $parsedUrl = parse_url($refererUrl);
+                if (isset($parsedUrl['host'])) {
+                    $referrer = $parsedUrl['host'];
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to parse referrer URL: ' . $refererUrl);
+            }
+        }
+        
+        // Check if referrer is from a known affiliate/partner
+        $isAffiliate = false;
+        if ($referrer) {
+            $isAffiliate = str_contains(strtolower($referrer), 'linkvertise.com') || 
+                          str_contains(strtolower($referrer), 'aff') || 
+                          str_contains(strtolower($referrer), 'affiliate') ||
+                          str_contains(strtolower($referrer), 'partner');
+                          
+            // Log the referrer for analytics
+            Log::info('Checkout referrer detected', [
+                'referrer' => $referrer,
+                'isAffiliate' => $isAffiliate,
+                'user_id' => auth()->id(),
+                'url' => $request->fullUrl()
+            ]);
+        }
+        
+        // Pass referrer information to the component
+        return Inertia::render('Checkout/Page', [
+            'referrerInfo' => [
+                'domain' => $referrer,
+                'isAffiliate' => $isAffiliate
+            ]
+        ]);
+    })->name('checkout.success');
+
+    
 Route::get('/admin/api/locations/{location}', [LocationController::class, 'show'])->name('locations.show');
 Route::get('/client/api/plans', [PlanController::class, 'apiIndex'])->name('plans.api.Index');
 
