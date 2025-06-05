@@ -5,8 +5,9 @@
         "dev": "concurrently \"npm run dev:laravel\" \"npm run dev:react\"",
         "dev:laravel": "php artisan serve",
         "dev:react": "vite",
-        "build": "tsc && vite build",
-        "production": "npm run build && ./serve.production.sh"
+        "build": "vite build",
+        "production": "npm run build && ./serve.production.sh",
+        "build:ssr": "vite build && vite build --ssr"
     },
     "devDependencies": {
         "@headlessui/react": "^2.2.0",
@@ -25,6 +26,7 @@
     },
     "dependencies": {
         "@babel/plugin-transform-react-jsx": "^7.27.1",
+        "@heroicons/react": "^2.2.0",
         "@radix-ui/react-alert-dialog": "^1.1.2",
         "@radix-ui/react-checkbox": "^1.1.2",
         "@radix-ui/react-collapsible": "^1.1.1",
@@ -51,6 +53,7 @@
         "tailwind-merge": "^2.5.4",
         "tailwindcss-animate": "^1.0.7",
         "terser": "^5.40.0",
-        "web-vitals": "^5.0.2"
+        "web-vitals": "^5.0.2",
+        "ziggy-js": "^2.5.3"
     }
 }

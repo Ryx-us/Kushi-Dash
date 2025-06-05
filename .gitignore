@@ -1,4 +1,7 @@
 /vendor
+/bootstrap/ssr
+/node_modules
+
 /public/build/*
 !/public/.htaccess
 !/public/favicon.ico

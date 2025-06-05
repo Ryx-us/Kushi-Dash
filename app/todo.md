@@ -35,6 +35,10 @@ For mariadb
 ###########################################
 
 
+adding async to the Update resource jOB to make it fast. 
+Making everything use ASYNC to be faster
+
+
 
 # Kushi-Dash Queue Worker File
 # ----------------------------------
