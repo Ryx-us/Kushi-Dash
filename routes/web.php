@@ -222,6 +222,9 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/earn', [EarningController::class, 'earn'])->name('earn');
+     Route::get('broadcast/india', function () {
+        return Inertia::render('Broadcast/Page');
+    })->name('broadcast.1');
     
     
 

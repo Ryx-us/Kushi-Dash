@@ -21,6 +21,7 @@ import {
   LucideSlidersVertical,
   LucideKeySquare,
   MoreHorizontal,
+  LucideServer,
 } from "lucide-react"
 import ApplicationLogo from "@/components/ApplicationLogo"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -125,28 +126,29 @@ function AppSidebar({ auth, vmsConfig, sidebartab }) {
   return (
     <Sidebar variant="inset" className="border-r-0">
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href="/" className="flex items-center">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg  text-sidebar-primary-foreground">
-                  <ApplicationLogo className="h-6 w-6 " />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Dashboard</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {auth.user.rank === "admin"
-                      ? "Administrator"
-                      : auth.user.rank === "premium"
-                        ? "Premium User"
-                        : "User"}
-                  </span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
+  <SidebarMenu>
+    <SidebarMenuItem>
+      <SidebarMenuButton size="lg" asChild>
+        <Link href="/" className="flex items-center">
+          {/* Remove the aspect-square and rounded-lg classes */}
+          <div className="flex size-8 items-center justify-center">
+            <ApplicationLogo className="h-6 w-6" />
+          </div>
+          <div className="grid flex-1 text-left text-sm leading-tight">
+            <span className="truncate font-semibold">Dashboard</span>
+            <span className="truncate text-xs text-muted-foreground">
+              {auth.user.rank === "admin"
+                ? "Administrator"
+                : auth.user.rank === "premium"
+                  ? "Premium User"
+                  : "User"}
+            </span>
+          </div>
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  </SidebarMenu>
+</SidebarHeader>
 
       <SidebarContent>
         {/* Overview Section */}
@@ -184,6 +186,30 @@ function AppSidebar({ auth, vmsConfig, sidebartab }) {
                   <Link href="/panel">
                     <LucideKeySquare />
                     <span>Control Panel</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+                <SidebarGroup>
+          <SidebarGroupLabel>Broadcast</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={sidebartab === "broadcast-1"}>
+                  <Link href="/broadcast/india">
+                    <LucideServer />
+                    <span>India</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={sidebartab === "broadcast-2"}>
+                  <Link href="/broadcast/uk">
+                    <LucideServer />
+                    <span>UK</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -319,20 +345,24 @@ function AppSidebar({ auth, vmsConfig, sidebartab }) {
                     )}
                   >
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={getGravatarUrl(auth.user.email) || "/placeholder.svg"} alt={auth.user.name} />
-                      <AvatarFallback
-                        className={cn(
-                          "text-xs font-medium",
-                          auth.user.rank === "premium"
-                            ? "bg-amber-600 text-white"
-                            : auth.user.rank === "admin"
-                              ? "bg-red-600 text-white"
-                              : "bg-gray-600 text-white",
-                        )}
-                      >
-                        {getUserInitials(auth.user.name)}
-                      </AvatarFallback>
-                    </Avatar>
+  <AvatarImage 
+    src={getGravatarUrl(auth.user.email) || "/placeholder.svg"} 
+    alt={auth.user.name}
+    className="object-cover" // Add this to ensure the image fills properly
+  />
+  <AvatarFallback
+    className={cn(
+      "text-xs font-medium",
+      auth.user.rank === "premium"
+        ? "bg-amber-600 text-white"
+        : auth.user.rank === "admin"
+          ? "bg-red-600 text-white"
+          : "bg-gray-600 text-white",
+    )}
+  >
+    {getUserInitials(auth.user.name)}
+  </AvatarFallback>
+</Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-semibold">{auth.user.name}</span>
                       <span className="truncate text-xs capitalize text-muted-foreground">
@@ -408,7 +438,7 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
     <SidebarProvider>
       <AppSidebar auth={auth} vmsConfig={vmsConfig} sidebartab={sidebartab} />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear ">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
@@ -434,13 +464,13 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
           <div className="ml-auto flex items-center space-x-4 px-4">
             <div className="flex items-center space-x-2">
               <Sun className="h-4 w-4" />
-              <Switch checked={isDarkMode} onCheckedChange={toggleTheme} className="data-[state=checked]:bg-primary" />
+              <Switch checked={isDarkMode} onCheckedChange={toggleTheme} className="" />
               <Moon className="h-4 w-4" />
             </div>
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 p-4">
+          <div className="min-h-[100vh] flex-1  bg-muted/50 p-4">
             {children}
             <Footer />
           </div>
