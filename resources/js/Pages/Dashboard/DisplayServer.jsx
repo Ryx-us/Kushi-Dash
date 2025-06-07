@@ -64,8 +64,9 @@ export default function DisplayServer({ className = '' }) {
 
     const handleEdit = (serverId) => {
         const editUrl = `/dashboard/servers/edit/${serverId}`;
-        window.open(editUrl, '_blank');
+        window.location.href = editUrl;
     };
+
 
     const fetchEggData = async (eggId) => {
         try {

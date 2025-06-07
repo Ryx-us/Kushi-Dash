@@ -63,35 +63,79 @@ class LocationController extends Controller
     }
     
 
-    /**
-     * Update the specified location in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $locationId
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, $locationId)
+    
+public function update(Request $request, $locationId)
 {
-    // Validate the incoming data
-    $validatedData = $request->validate([
-        'name' => 'required|string|max:255',
-        'location' => 'required|string|max:255',
-        'servers' => 'nullable|integer|min:0',
-        'flag' => 'required|string|url|max:255',
-        'maxservers' => 'required|integer|min:0',
-        'latencyurl' => 'required|string|url|max:255',
-        'requiredRank' => 'required|string|max:255',
-        'maintenance' => 'required|boolean',
-        'requiredSubscriptions' => 'nullable|array',
-        'requiredSubscriptions.*' => 'exists:plans,id',
-        'coinRenewal' => 'nullable|string|max:255',
-        'platform' => 'required|string|max:255',
-        'platform_settings' => 'nullable|json',
+    Log::info('Starting location update', [
+        'locationId' => $locationId,
+        'requestData' => $request->all()
     ]);
 
     try {
+        // Validate the incoming data
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
+            'location' => 'required|string|max:255',
+            'servers' => 'nullable|integer|min:0',
+            'flag' => 'required|string|url|max:255',
+            'maxservers' => 'required|integer|min:0',
+            'latencyurl' => 'required|string|url|max:255',
+            'requiredRank' => 'required|string|max:255',
+            'maintenance' => 'required|boolean',
+            'requiredSubscriptions' => 'nullable|array',
+            'requiredSubscriptions.*' => 'exists:plans,id',
+            'coinRenewal' => 'nullable',
+            'platform' => 'required|string|max:255',
+            'platform_settings' => 'nullable',
+        ]);
+
+        Log::info('Validation passed', ['validatedData' => $validatedData]);
+
         // Find the location by ID
         $location = Location::findOrFail($locationId);
+        Log::info('Found location', ['locationBeforeUpdate' => $location->toArray()]);
+
+        // Process coinRenewal if it's an array
+        if (!empty($validatedData['coinRenewal']) && is_array($validatedData['coinRenewal'])) {
+            Log::info('Processing coinRenewal array', ['coinRenewal' => $validatedData['coinRenewal']]);
+            $validatedData['coinRenewal'] = json_encode([
+                'amount' => $validatedData['coinRenewal']['amount'] ?? 0,
+                'hours' => $validatedData['coinRenewal']['hours'] ?? 0,
+                'exceptions' => $validatedData['coinRenewal']['exceptions'] ?? []
+            ]);
+        } else if (is_string($validatedData['coinRenewal'])) {
+            Log::info('coinRenewal is already a string', ['coinRenewal' => $validatedData['coinRenewal']]);
+            // Keep it as is, it's already JSON
+        } else {
+            Log::info('Setting coinRenewal to null');
+            $validatedData['coinRenewal'] = null;
+        }
+
+        // Process platform_settings if needed
+        if (!empty($validatedData['platform_settings'])) {
+            if (is_array($validatedData['platform_settings'])) {
+                Log::info('Converting platform_settings array to JSON', [
+                    'platform_settings' => $validatedData['platform_settings']
+                ]);
+                $validatedData['platform_settings'] = json_encode($validatedData['platform_settings']);
+            } else if (is_string($validatedData['platform_settings'])) {
+                // Check if valid JSON
+                json_decode($validatedData['platform_settings']);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    Log::info('platform_settings is already valid JSON');
+                } else {
+                    Log::warning('Invalid JSON in platform_settings', [
+                        'platform_settings' => $validatedData['platform_settings'],
+                        'error' => json_last_error_msg()
+                    ]);
+                    // Try to fix or nullify based on your requirements
+                    $validatedData['platform_settings'] = null;
+                }
+            }
+        } else {
+            Log::info('Setting platform_settings to null');
+            $validatedData['platform_settings'] = null;
+        }
 
         // Update location attributes
         $location->name = $validatedData['name'];
@@ -103,18 +147,44 @@ class LocationController extends Controller
         $location->requiredRank = $validatedData['requiredRank'];
         $location->maintenance = $validatedData['maintenance'];
         $location->requiredSubscriptions = $validatedData['requiredSubscriptions'] ?? [];
-        $location->coinRenewal = $validatedData['coinRenewal'] ?? null;
+        $location->coinRenewal = $validatedData['coinRenewal'];
         $location->platform = $validatedData['platform'];
-        $location->platform_settings = $validatedData['platform_settings'] ?? null;
+        $location->platform_settings = $validatedData['platform_settings'];
+
+        Log::info('Location updated, preparing to save', [
+            'locationAfterUpdate' => $location->toArray()
+        ]);
 
         // Save the updated location
         $location->save();
+        Log::info('Location saved successfully');
 
         return redirect()->route('locations.Viewedit', ['locationId' => $locationId])
-    ->with('success', 'Location updated successfully.');
+            ->with('success', 'Location updated successfully.');
 
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        Log::error('Validation failed', [
+            'errors' => $e->errors(),
+        ]);
+        return response()->json([
+            'message' => 'Validation failed',
+            'errors' => $e->errors()
+        ], 422);
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        Log::error('Location not found', [
+            'locationId' => $locationId,
+            'exception' => $e->getMessage()
+        ]);
+        return response()->json([
+            'message' => 'Location not found',
+            'error' => $e->getMessage()
+        ], 404);
     } catch (\Exception $e) {
-        Log::error('Failed to update location: ' . $e->getMessage());
+        Log::error('Failed to update location', [
+            'locationId' => $locationId,
+            'exception' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
         return response()->json([
             'message' => 'Failed to update location',
             'error' => $e->getMessage()

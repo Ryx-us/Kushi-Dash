@@ -389,6 +389,7 @@ export default function BroadcastPage({ auth }) {
     <AuthenticatedLayout
       user={auth.user}
       header={'Home / Location-India'}
+        sidebartab="broadcast-1"
       
     >
 

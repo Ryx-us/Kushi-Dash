@@ -28,7 +28,7 @@ export default function AdminDashboard() {
                         Home / Funds
                     </h2>
                 }
-                sidebartab="deploy"
+                sidebartab="earn"
             >
                 <Head title="Earn Funds" />
 
