@@ -6,25 +6,21 @@ import {
   Home,
   UserIcon,
   Sun,
-  Moon,
-  Settings,
   LogOut,
   BarChart3,
   LucideLock,
   LucideMonitorUp,
   Coins,
   Crown,
-  HammerIcon,
   LucideShoppingBag,
   LucideHandCoins,
   CogIcon,
   LucideSlidersVertical,
   LucideKeySquare,
-  MoreHorizontal,
-  LucideServer,
+  Search,
+  Command,
 } from "lucide-react"
 import ApplicationLogo from "@/components/ApplicationLogo"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -39,7 +35,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -52,9 +47,34 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import Footer from "@/components/Footer"
+import { useSearch } from "@/hooks/search"
+
+const searchData = [
+  {
+    href: '/dashboard',
+    name: 'Dashboard',
+    description: 'View your account dashboard and statistics'
+  },
+  {
+    href: '/locations',
+    name: 'Locations',
+    description: 'Browse and manage available server locations'
+  },
+  {
+    href: '/settings',
+    name: 'Account Settings',
+    description: 'Manage your account preferences and security options'
+  },
+  {
+    href: '/billing',
+    name: 'Billing Information',
+    description: 'View and update your billing details and subscription'
+  },
+  // Add more items as needed
+];
 
 
 // Helper function to parse breadcrumb from header
@@ -110,6 +130,10 @@ const getUserInitials = (name) => {
 
 // App Sidebar Component
 function AppSidebar({ auth, vmsConfig, sidebartab }) {
+  const [searchFocused, setSearchFocused] = useState(false);
+  
+  const { SearchComponent, SearchTrigger, openSearch } = useSearch();
+
   const canAccessVMs = () => {
     if (!vmsConfig.enabled) return false
 
@@ -124,290 +148,298 @@ function AppSidebar({ auth, vmsConfig, sidebartab }) {
   }
 
   return (
-    <Sidebar variant="inset" className="border-r-0">
-      <SidebarHeader>
-  <SidebarMenu>
-    <SidebarMenuItem>
-      <SidebarMenuButton size="lg" asChild>
-        <Link href="/" className="flex items-center">
-          {/* Remove the aspect-square and rounded-lg classes */}
-          <div className="flex size-8 items-center justify-center">
-            <ApplicationLogo className="h-6 w-6" />
+    <Sidebar variant="sidebar" className="bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800">
+      {/* Header */}
+      <SidebarHeader className="p-6 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg ">
+            <ApplicationLogo className="h-6 w-6 fill-current text-white" />
           </div>
-          <div className="grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-semibold">Dashboard</span>
-            <span className="truncate text-xs text-muted-foreground">
-              {auth.user.rank === "admin"
-                ? "Administrator"
-                : auth.user.rank === "premium"
-                  ? "Premium User"
-                  : "User"}
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Dashboard</h2>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              {auth.user.rank === 'admin' ? 'Administration' : 'Hobby'}
+            </p>
+          </div>
+        </div>
+
+        {/* Search Trigger */}
+        <div
+          className={cn(
+            "relative flex items-center rounded-lg border transition-colors cursor-pointer",
+            searchFocused
+              ? "border-zinc-300 dark:border-zinc-600"
+              : "border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900",
+          )}
+          onClick={openSearch}
+        >
+          <Search className="absolute left-3 h-4 w-4 text-zinc-400 dark:text-zinc-500" />
+          <div 
+            className="h-9 pl-9 pr-4 py-2 w-full text-sm text-zinc-400 dark:text-zinc-500 flex items-center justify-between"
+          >
+            <span>Search...</span>
+            <span className="text-xs border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-0.5 flex items-center">
+              <Command className="h-3 w-3 mr-1" />
+              <span>K</span>
             </span>
           </div>
-        </Link>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  </SidebarMenu>
-</SidebarHeader>
+        </div>
+        
+        {/* Render the search component at the end of the AppSidebar */}
+        <SearchComponent />
+      </SidebarHeader>
 
-      <SidebarContent>
-        {/* Overview Section */}
+      {/* Navigation */}
+      <SidebarContent className="px-4 py-6">
         <SidebarGroup>
-          <SidebarGroupLabel>Overview</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-1">
+              {/* Home */}
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={sidebartab === "home"}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={sidebartab === "home"}
+                  className={cn(
+                    "h-10 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                    "data-[active=true]:bg-zinc-900 data-[active=true]:text-white dark:data-[active=true]:bg-zinc-100 dark:data-[active=true]:text-zinc-900",
+                    "rounded-lg transition-colors",
+                  )}
+                >
                   <Link href={route("dashboard")}>
-                    <Home />
-                    <span>Home</span>
+                    <Home className="h-5 w-5" />
+                    <span className="font-medium">Dashboard</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
 
-        {/* Computing Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Computing</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
+              {/* Deploy */}
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={sidebartab === "deploy"}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={sidebartab === "deploy"}
+                  className={cn(
+                    "h-10 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                    "data-[active=true]:bg-zinc-900 data-[active=true]:text-white dark:data-[active=true]:bg-zinc-100 dark:data-[active=true]:text-zinc-900",
+                    "rounded-lg transition-colors",
+                  )}
+                >
                   <Link href="/deploy">
-                    <LucideMonitorUp />
-                    <span>Deploy</span>
+                    <LucideMonitorUp className="h-5 w-5" />
+                    <span className="font-medium">Deploy</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
+              {/* Control Panel */}
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={sidebartab === "customers"}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={sidebartab === "panel"}
+                  className={cn(
+                    "h-10 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                    "data-[active=true]:bg-zinc-900 data-[active=true]:text-white dark:data-[active=true]:bg-zinc-100 dark:data-[active=true]:text-zinc-900",
+                    "rounded-lg transition-colors",
+                  )}
+                >
                   <Link href="/panel">
-                    <LucideKeySquare />
-                    <span>Control Panel</span>
+                    <LucideKeySquare className="h-5 w-5" />
+                    <span className="font-medium">Control Panel</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
 
-                <SidebarGroup>
-          <SidebarGroupLabel>Broadcast</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
+              {/* Shop */}
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={sidebartab === "broadcast-1"}>
-                  <Link href="/broadcast/india">
-                    <LucideServer />
-                    <span>India</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={sidebartab === "broadcast-2"}>
-                  <Link href="/broadcast/uk">
-                    <LucideServer />
-                    <span>UK</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Products Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Products</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={sidebartab === "products"}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={sidebartab === "products"}
+                  className={cn(
+                    "h-10 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                    "data-[active=true]:bg-zinc-900 data-[active=true]:text-white dark:data-[active=true]:bg-zinc-100 dark:data-[active=true]:text-zinc-900",
+                    "rounded-lg transition-colors",
+                  )}
+                >
                   <Link href="/plans">
-                    <LucideShoppingBag />
-                    <span>Shop</span>
+                    <LucideShoppingBag className="h-5 w-5" />
+                    <span className="font-medium">Shop</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
+              {/* Coin Shop */}
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={sidebartab === "coinshop"}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={sidebartab === "coinshop"}
+                  className={cn(
+                    "h-10 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                    "data-[active=true]:bg-zinc-900 data-[active=true]:text-white dark:data-[active=true]:bg-zinc-100 dark:data-[active=true]:text-zinc-900",
+                    "rounded-lg transition-colors",
+                  )}
+                >
                   <Link href="/shop">
-                    <LucideHandCoins />
-                    <span>Coin Shop</span>
+                    <LucideHandCoins className="h-5 w-5" />
+                    <span className="font-medium">Coin Shop</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
+              {/* Earn Coins */}
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={sidebartab === "earn"}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={sidebartab === "earn"}
+                  className={cn(
+                    "h-10 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                    "data-[active=true]:bg-zinc-900 data-[active=true]:text-white dark:data-[active=true]:bg-zinc-100 dark:data-[active=true]:text-zinc-900",
+                    "rounded-lg transition-colors",
+                  )}
+                >
                   <Link href="/earn">
-                    <BarChart3 />
-                    <span>Earn Coins</span>
+                    <BarChart3 className="h-5 w-5" />
+                    <span className="font-medium">Earn Coins</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
 
-        {/* User Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel>User</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
+              {/* Profile */}
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={sidebartab === "profile"}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={sidebartab === "profile"}
+                  className={cn(
+                    "h-10 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                    "data-[active=true]:bg-zinc-900 data-[active=true]:text-white dark:data-[active=true]:bg-zinc-100 dark:data-[active=true]:text-zinc-900",
+                    "rounded-lg transition-colors",
+                  )}
+                >
                   <Link href="/profile">
-                    {auth.user.rank === "premium" ? <Crown /> : <UserIcon />}
-                    <span>Profile</span>
+                    {auth.user.rank === "premium" ? (
+                      <Crown className="h-5 w-5 text-amber-500" />
+                    ) : (
+                      <UserIcon className="h-5 w-5" />
+                    )}
+                    <span className="font-medium">Profile</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
 
-        {/* Admin Section */}
-        {auth.user.rank === "admin" && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Business Settings</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
+              {/* Admin Panel */}
+              {auth.user.rank === "admin" && (
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={sidebartab === "settings"}>
-                    <Link href='/admin'>
-                      <CogIcon />
-                      <span>Admin Panel</span>
-                    </Link>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={sidebartab === "settings"}
+                    className={cn(
+                      "h-10 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                      "data-[active=true]:bg-zinc-900 data-[active=true]:text-white dark:data-[active=true]:bg-zinc-100 dark:data-[active=true]:text-zinc-900",
+                      "rounded-lg transition-colors",
+                    )}
+                  >
+                    <a href="/admin">
+                      <CogIcon className="h-5 w-5 text-red-500" />
+                      <span className="font-medium">Admin Panel</span>
+                    </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+              )}
 
-        {/* Virtual Machines Section */}
-        {vmsConfig.enabled && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Virtual Machines</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
+              {/* Virtual Machines */}
+              {vmsConfig.enabled && (
                 <SidebarMenuItem>
                   {canAccessVMs() ? (
-                    <SidebarMenuButton asChild isActive={sidebartab === "vms"}>
-                      <Link href='/vms'>
-                        <LucideSlidersVertical />
-                        <span>Virtual Machines</span>
-                      </Link>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={sidebartab === "vms"}
+                      className={cn(
+                        "h-10 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                        "data-[active=true]:bg-zinc-900 data-[active=true]:text-white dark:data-[active=true]:bg-zinc-100 dark:data-[active=true]:text-zinc-900",
+                        "rounded-lg transition-colors",
+                      )}
+                    >
+                      <a href="/vms">
+                        <LucideSlidersVertical className="h-5 w-5" />
+                        <span className="font-medium">Virtual Machines</span>
+                      </a>
                     </SidebarMenuButton>
                   ) : (
-                    <SidebarMenuButton disabled>
-                      <LucideLock />
-                      <span>VMs (Restricted)</span>
+                    <SidebarMenuButton
+                      disabled
+                      className="h-10 text-zinc-400 dark:text-zinc-600 rounded-lg opacity-60 cursor-not-allowed"
+                    >
+                      <LucideLock className="h-5 w-5" />
+                      <span className="font-medium">VMs (Restricted)</span>
                     </SidebarMenuButton>
                   )}
                 </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {/* Settings with Badge */}
-        
+              )}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
-      {/* User Profile Section */}
-      <SidebarFooter>
-        <div className="border-t border-sidebar-border pt-2">
-          <SidebarMenu>
-            {/* Coins Display */}
-            <SidebarMenuItem>
-              <div className="flex items-center justify-between px-2 py-1 text-sm text-muted-foreground">
-                <div className="flex items-center">
-                  <Coins className="h-4 w-4 mr-2 text-amber-500" />
-                  <span>Coins: {auth.user.coins || 0}</span>
-                </div>
+      {/* Footer */}
+      <SidebarFooter className="border-t border-zinc-200 dark:border-zinc-800 p-4">
+        <SidebarMenu className="space-y-2">
+          {/* Coins Display */}
+          <SidebarMenuItem>
+            <div className="flex items-center justify-between px-3 py-2 text-sm bg-zinc-50 dark:bg-zinc-900 rounded-lg">
+              <div className="flex items-center">
+                <Coins className="h-4 w-4 mr-2 text-amber-500" />
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">Coins: {auth.user.coins || 0}</span>
               </div>
-            </SidebarMenuItem>
+            </div>
+          </SidebarMenuItem>
 
-            {/* User Profile */}
-            <SidebarMenuItem>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton
-                    size="lg"
+          {/* Logout */}
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              className="h-10 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+            >
+              <Link href={route("logout")} method="post" as="button">
+                <LogOut className="h-5 w-5" />
+                <span className="font-medium">Logout</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+
+          {/* Theme Toggle */}
+          <SidebarMenuItem>
+            <div className="flex items-center justify-between px-3 py-2">
+              <div className="flex items-center">
+                <Sun className="h-4 w-4 mr-2 text-zinc-500 dark:text-zinc-400" />
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Light mode</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={getGravatarUrl(auth.user.email) || "/placeholder.svg"} alt={auth.user.name} />
+                  <AvatarFallback
                     className={cn(
-                      "data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
-                      auth.user.rank === "premium" &&
-                        "bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/50",
-                      auth.user.rank === "admin" &&
-                        "bg-red-50 hover:bg-red-100 dark:bg-red-950/50 dark:hover:bg-red-900/50",
+                      "text-xs font-medium",
+                      auth.user.rank === "premium"
+                        ? "bg-amber-600 text-white"
+                        : auth.user.rank === "admin"
+                          ? "bg-red-600 text-white"
+                          : "bg-zinc-600 text-white",
                     )}
                   >
-                    <Avatar className="h-8 w-8">
-  <AvatarImage 
-    src={getGravatarUrl(auth.user.email) || "/placeholder.svg"} 
-    alt={auth.user.name}
-    className="object-cover" // Add this to ensure the image fills properly
-  />
-  <AvatarFallback
-    className={cn(
-      "text-xs font-medium",
-      auth.user.rank === "premium"
-        ? "bg-amber-600 text-white"
-        : auth.user.rank === "admin"
-          ? "bg-red-600 text-white"
-          : "bg-gray-600 text-white",
-    )}
-  >
-    {getUserInitials(auth.user.name)}
-  </AvatarFallback>
-</Avatar>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">{auth.user.name}</span>
-                      <span className="truncate text-xs capitalize text-muted-foreground">
-                        {auth.user.rank === "premium" && <Crown className="inline h-3 w-3 mr-1 text-amber-500" />}
-                        {auth.user.rank === "admin" && <HammerIcon className="inline h-3 w-3 mr-1 text-red-500" />}
-                        {auth.user.rank}
-                      </span>
-                    </div>
-                    <MoreHorizontal className="ml-auto size-4" />
-                  </SidebarMenuButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-                  side="bottom"
-                  align="end"
-                  sideOffset={4}
-                >
-                  <DropdownMenuItem>
-                    <Link href={route("profile.edit")} className="flex items-center w-full">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Profile Settings
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="text-red-600 focus:text-red-600 dark:text-red-400">
-                    <Link href={route("logout")} method="post" as="button" className="flex items-center w-full">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Log Out
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </SidebarMenuItem>
-
-            {/* Logout Button */}
-            
-          </SidebarMenu>
-        </div>
+                    {getUserInitials(auth.user.name)}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+            </div>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )
 }
 
-export default function AuthenticatedLayout({ header, children, sidebartab }) {
-  const { auth, coins, vmsConfig } = usePage().props
+// Theme Toggle Component
+function ThemeToggle() {
   const [isDarkMode, setIsDarkMode] = useState(false)
 
   useEffect(() => {
@@ -431,6 +463,19 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
     }
   }
 
+  return (
+    <Switch
+      checked={isDarkMode}
+      onCheckedChange={toggleTheme}
+      className="data-[state=checked]:bg-zinc-900 dark:data-[state=checked]:bg-zinc-100"
+    />
+  )
+}
+
+export default function AuthenticatedLayout({ header, children, sidebartab }) {
+  const { auth, coins, vmsConfig } = usePage().props
+
+  
   // Parse breadcrumb from header
   const breadcrumbParts = parseBreadcrumb(header)
 
@@ -438,10 +483,10 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
     <SidebarProvider>
       <AppSidebar auth={auth} vmsConfig={vmsConfig} sidebartab={sidebartab} />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear ">
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
+            <SidebarTrigger className="-ml-1 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800" />
+            <Separator orientation="vertical" className="mr-2 h-4 bg-zinc-200 dark:bg-zinc-700" />
             {breadcrumbParts.length > 0 && (
               <Breadcrumb>
                 <BreadcrumbList>
@@ -449,28 +494,30 @@ export default function AuthenticatedLayout({ header, children, sidebartab }) {
                     <React.Fragment key={index}>
                       <BreadcrumbItem className="hidden md:block">
                         {index === breadcrumbParts.length - 1 ? (
-                          <BreadcrumbPage>{part}</BreadcrumbPage>
+                          <BreadcrumbPage className="text-zinc-900 dark:text-zinc-100 font-medium">
+                            {part}
+                          </BreadcrumbPage>
                         ) : (
-                          <BreadcrumbLink href="#">{part}</BreadcrumbLink>
+                          <BreadcrumbLink
+                            href="#"
+                            className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
+                          >
+                            {part}
+                          </BreadcrumbLink>
                         )}
                       </BreadcrumbItem>
-                      {index < breadcrumbParts.length - 1 && <BreadcrumbSeparator className="hidden md:block" />}
+                      {index < breadcrumbParts.length - 1 && (
+                        <BreadcrumbSeparator className="hidden md:block text-zinc-400 dark:text-zinc-600" />
+                      )}
                     </React.Fragment>
                   ))}
                 </BreadcrumbList>
               </Breadcrumb>
             )}
           </div>
-          <div className="ml-auto flex items-center space-x-4 px-4">
-            <div className="flex items-center space-x-2">
-              <Sun className="h-4 w-4" />
-              <Switch checked={isDarkMode} onCheckedChange={toggleTheme} className="" />
-              <Moon className="h-4 w-4" />
-            </div>
-          </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="min-h-[100vh] flex-1  bg-muted/50 p-4">
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0 bg-zinc-50 dark:bg-zinc-950">
+          <div className="min-h-[100vh] flex-1 rounded-xl bg-white dark:bg-zinc-900 p-6 border border-zinc-200 dark:border-zinc-800">
             {children}
             <Footer />
           </div>
