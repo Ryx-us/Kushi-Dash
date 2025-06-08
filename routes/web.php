@@ -217,6 +217,12 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::post('/admin/api/update-discord-settings', [DiscordSettingsController::class, 'update'])->name('discord.settings.update');
 });
 
+Route::get('api/check-demo-enabled', function () {
+    return response()->json([
+        'enabled' => env('DEMO', false),
+    ]);
+});
+
 
 
 

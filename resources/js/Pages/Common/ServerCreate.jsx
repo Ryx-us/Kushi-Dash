@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, usePage, router } from '@inertiajs/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,8 @@ import {
   AlertDialogFooter,
 } from '@/components/ui/alert-dialog';
 import { CheckCircle2, XCircle } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Info } from 'lucide-react';
 
 export default function ServerCreate() {
   const { locations, eggs, auth } = usePage().props;
@@ -23,6 +25,8 @@ export default function ServerCreate() {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [selectedEggId, setSelectedEggId] = useState(null);
+  const [demoEnabled, setDemoEnabled] = useState(false);
+  const [showDemoOption, setShowDemoOption] = useState(false);
   
   const { flash } = usePage().props;
   const isError = flash?.status?.includes('Error');
@@ -197,8 +201,58 @@ export default function ServerCreate() {
     post(route('servers.store'));
   };
 
+  // Check if demo mode is enabled in the environment
+  useEffect(() => {
+    // We'll use an API endpoint to check if DEMO=true in the environment
+    fetch('/api/check-demo-enabled')
+      .then(response => response.json())
+      .then(data => {
+        setShowDemoOption(data.enabled);
+      })
+      .catch(error => {
+        console.error('Failed to check if demo is enabled:', error);
+      });
+  }, []);
+
+  // Update form when demo is toggled
+  useEffect(() => {
+    if (demoEnabled) {
+      // Set data.is_demo when the demo switch is toggled
+      setData(prev => ({ ...prev, is_demo: true }));
+    } else {
+      setData(prev => ({ ...prev, is_demo: false }));
+    }
+  }, [demoEnabled]);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Show demo toggle if enabled in environment */}
+      {showDemoOption && (
+        <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+          <CardContent className="p-4">
+            <div className="flex items-start space-x-4">
+              <Info className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-amber-800 dark:text-amber-400">Demo Mode</h3>
+                <p className="text-sm text-amber-700 dark:text-amber-500 mt-1">
+                  Create a temporary server that will be automatically suspended after 48 hours. Demo servers don't count against your resource limits.
+                </p>
+                <div className="mt-3 flex items-center space-x-2">
+                  <Switch
+                    checked={demoEnabled}
+                    onCheckedChange={setDemoEnabled}
+                    id="demo-mode"
+                  />
+                  <Label htmlFor="demo-mode" className="font-medium text-amber-800 dark:text-amber-400">
+                    Enable demo mode
+                  </Label>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -286,9 +340,22 @@ export default function ServerCreate() {
               <LucideMemoryStick className="h-5 w-5" />
               Resources
             </CardTitle>
-            <CardDescription>Server resource allocation</CardDescription>
+            <CardDescription>
+              {demoEnabled 
+                ? "Demo servers use pre-configured resources" 
+                : "Server resource allocation"}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {demoEnabled && (
+              <Alert className="bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-400 border-amber-200 dark:border-amber-800">
+                <AlertDescription>
+                  Demo servers are configured with preset resources: 100% CPU, 1024MB Memory, 5120MB Disk, 
+                  and 1 each for databases, backups, and ports.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <ResourceInput
               label="Memory"
               value={data.memory}
@@ -297,6 +364,7 @@ export default function ServerCreate() {
               max={calculateRemaining('memory')}
               step={128}
               remaining={calculateRemaining('memory')}
+              isDemoMode={demoEnabled}
             />
 
             <ResourceInput
@@ -306,6 +374,7 @@ export default function ServerCreate() {
               min={512}
               max={calculateRemaining('disk')}
               remaining={calculateRemaining('disk')}
+              isDemoMode={demoEnabled}
             />
 
             <ResourceInput
@@ -316,6 +385,7 @@ export default function ServerCreate() {
               max={calculateRemaining('cpu')}
               step={5}
               remaining={calculateRemaining('cpu')}
+              isDemoMode={demoEnabled}
             />
 
             <div className="grid grid-cols-3 gap-4">
@@ -325,6 +395,7 @@ export default function ServerCreate() {
                 onChange={(value) => setData('databases', value)}
                 max={calculateRemaining('databases')}
                 remaining={calculateRemaining('databases')}
+                isDemoMode={demoEnabled}
               />
               <SmallResourceInput
                 label="Backups"
@@ -333,6 +404,7 @@ export default function ServerCreate() {
                 min={0}
                 max={calculateRemaining('backups')}
                 remaining={calculateRemaining('backups')}
+                isDemoMode={demoEnabled}
               />
               <SmallResourceInput
                 label="Ports"
@@ -341,6 +413,7 @@ export default function ServerCreate() {
                 min={0}
                 max={calculateRemaining('allocations')}
                 remaining={calculateRemaining('allocations')}
+                isDemoMode={demoEnabled}
               />
             </div>
           </CardContent>
@@ -349,31 +422,42 @@ export default function ServerCreate() {
 
       <div className="flex justify-end">
         <Button type="submit" disabled={processing}>
-          {processing ? 'Creating...' : 'Create Server'}
+          {processing ? 'Creating...' : demoEnabled ? 'Create Demo Server' : 'Create Server'}
         </Button>
       </div>
 
-      <AlertDialog open={!isError && showSuccessDialog} onOpenChange={handleSuccessClose}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-6 w-6 text-green-500" />
-              Success!
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-base">
-              {flash?.status || 'Your server has been created successfully!'}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex gap-2">
-            <AlertDialogAction onClick={handleSuccessClose}>Continue</AlertDialogAction>
-            {flash?.server_url && (
-              <Button onClick={handleAccessServer} variant="outline">
-                Access Server
-              </Button>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      
+
+<AlertDialog open={!isError && showSuccessDialog} onOpenChange={handleSuccessClose}>
+  <AlertDialogContent className="max-w-md">
+    <AlertDialogHeader>
+      <AlertDialogTitle className="flex items-center gap-2">
+        <CheckCircle2 className="h-6 w-6 text-green-500" />
+        Success!
+      </AlertDialogTitle>
+      <AlertDialogDescription className="text-base">
+        {flash?.status || 'Your server has been created successfully!'}
+        
+        {flash?.is_demo && (
+          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md">
+            <p className="font-medium text-amber-800 dark:text-amber-400">Demo Server Information</p>
+            <p className="mt-1 text-amber-700 dark:text-amber-500">
+              This is a demo server that will be automatically suspended after 48 hours. Enjoy trying out our service!
+            </p>
+          </div>
+        )}
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter className="flex gap-2">
+      <AlertDialogAction onClick={handleSuccessClose}>Continue</AlertDialogAction>
+      {flash?.server_url && (
+        <Button onClick={handleAccessServer} variant="outline">
+          Access Server
+        </Button>
+      )}
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
 
       <AlertDialog open={showErrorDialog} onOpenChange={handleErrorClose}>
         <AlertDialogContent className="max-w-md rounded-lg shadow-lg shadow-orange-950">
@@ -395,7 +479,7 @@ export default function ServerCreate() {
   );
 }
 
-const ResourceInput = ({ label, value, onChange, min, max, step, remaining }) => {
+const ResourceInput = ({ label, value, onChange, min, max, step, remaining, isDemoMode }) => {
   const displayValue = value === 0 ? '' : value;
 
   const handleChange = (e) => {
@@ -403,7 +487,29 @@ const ResourceInput = ({ label, value, onChange, min, max, step, remaining }) =>
     onChange(newValue);
   };
 
-  const hasError = value > remaining;
+  // Don't show errors in demo mode
+  const hasError = !isDemoMode && value > remaining;
+
+  // Set demo defaults based on label
+  useEffect(() => {
+    if (isDemoMode) {
+      let demoValue;
+      switch(label) {
+        case 'CPU':
+          demoValue = 100;
+          break;
+        case 'Memory':
+          demoValue = 1024;
+          break;
+        case 'Disk':
+          demoValue = 5120;
+          break;
+        default:
+          demoValue = min || 0;
+      }
+      onChange(demoValue);
+    }
+  }, [isDemoMode, label]);
 
   return (
     <div className="space-y-2">
@@ -412,28 +518,35 @@ const ResourceInput = ({ label, value, onChange, min, max, step, remaining }) =>
         <Input
           type="number"
           min={min}
-          max={max}
+          max={isDemoMode ? undefined : max}
           step={step}
           value={displayValue}
           onChange={handleChange}
           className={hasError ? 'border-red-500' : ''}
+          disabled={isDemoMode}
         />
         <span className="w-20 text-right">
           {value ? `${value}${label.includes('CPU') ? '%' : 'MB'}` : '-'}
         </span>
       </div>
-      <div className="text-xs text-muted-foreground">
-        Remaining: {remaining}
-        {label.includes('CPU') ? '%' : 'MB'}
-      </div>
-      {hasError && (
+      {isDemoMode ? (
+        <div className="text-xs text-amber-600 dark:text-amber-400">
+          Demo server with pre-configured resources
+        </div>
+      ) : (
+        <div className="text-xs text-muted-foreground">
+          Remaining: {remaining}
+          {label.includes('CPU') ? '%' : 'MB'}
+        </div>
+      )}
+      {!isDemoMode && hasError && (
         <Alert variant="destructive">
           <AlertDescription>
             You don't have enough {label.toLowerCase()} resources available. Maximum: {remaining}
           </AlertDescription>
         </Alert>
       )}
-      {value < min && value !== '' && (
+      {!isDemoMode && value < min && value !== '' && (
         <Alert variant="destructive">
           <AlertDescription>
             Minimum {label.toLowerCase()} is {min}
@@ -445,7 +558,7 @@ const ResourceInput = ({ label, value, onChange, min, max, step, remaining }) =>
   );
 };
 
-const SmallResourceInput = ({ label, value, onChange, min, max, remaining }) => {
+const SmallResourceInput = ({ label, value, onChange, min, max, remaining, isDemoMode }) => {
   const displayValue = value === 0 ? '' : value;
 
   const handleChange = (e) => {
@@ -453,7 +566,29 @@ const SmallResourceInput = ({ label, value, onChange, min, max, remaining }) => 
     onChange(newValue);
   };
 
-  const hasError = value > remaining;
+  // Don't show errors in demo mode
+  const hasError = !isDemoMode && value > remaining;
+
+  // Set demo defaults based on label
+  useEffect(() => {
+    if (isDemoMode) {
+      let demoValue;
+      switch(label) {
+        case 'Databases':
+          demoValue = 1;
+          break;
+        case 'Backups':
+          demoValue = 1;
+          break;
+        case 'Ports':
+          demoValue = 1;
+          break;
+        default:
+          demoValue = min || 0;
+      }
+      onChange(demoValue);
+    }
+  }, [isDemoMode, label]);
 
   return (
     <div className="space-y-2">
@@ -461,13 +596,20 @@ const SmallResourceInput = ({ label, value, onChange, min, max, remaining }) => 
       <Input
         type="number"
         min={min}
-        max={max}
+        max={isDemoMode ? undefined : max}
         value={displayValue}
         onChange={handleChange}
         className={hasError ? 'border-red-500' : ''}
+        disabled={isDemoMode}
       />
-      <div className="text-xs text-muted-foreground">Remaining: {remaining}</div>
-      {hasError && (
+      {isDemoMode ? (
+        <div className="text-xs text-amber-600 dark:text-amber-400">
+          Demo preset
+        </div>
+      ) : (
+        <div className="text-xs text-muted-foreground">Remaining: {remaining}</div>
+      )}
+      {!isDemoMode && hasError && (
         <Alert variant="destructive">
           <AlertDescription>
             You don't have enough {label.toLowerCase()} available. Maximum: {remaining}

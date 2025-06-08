@@ -359,6 +359,19 @@ public function updateUserDetails($userId, $details)
         'nodes' => $nodes
     ];
 }
+
+public function suspendServer($serverId)
+{
+    $response = $this->client->request('POST', "api/application/servers/{$serverId}/suspend", [
+        'headers' => [
+            'Authorization' => 'Bearer ' . $this->apiKey,
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+        ],
+    ]);
+
+    return json_decode($response->getBody(), true);
+}
     
 
     public function getEggDetails($nestId, $eggId)

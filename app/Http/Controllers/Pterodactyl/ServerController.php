@@ -102,11 +102,12 @@ class ServerController extends Controller
 
     
 
-    public function store(Request $request, PterodactylService $pterodactylService)
+
+
+public function store(Request $request, PterodactylService $pterodactylService)
 {
     try {
-
-        Log::error('Incoming server creation request:', $request->all());
+        Log::info('Incoming server creation request:', $request->all());
 
         // Get user data with rank check
         $user = User::where('discord_id', $request->user()->discord_id)->first();
@@ -126,12 +127,17 @@ class ServerController extends Controller
             return back()->with('status', 'Error: Invalid location selected');
         }
 
-        // Check rank requirements
-        if ($location->requiredRank === 'admin' && !$user->rank) {
-            return back()->with('status', 'Error: This location requires admin privileges');
-        }
-        if ($location->requiredRank === 'premium' && $user->rank !== 'premium' && $user->rank !== 'admin') {
-            return back()->with('status', 'Error: This location requires premium privileges');
+        // Check if this is a demo server request
+        $isDemo = $request->input('is_demo', false) && env('DEMO', false);
+        
+        // Check rank requirements (bypass if demo mode)
+        if (!$isDemo) {
+            if ($location->requiredRank === 'admin' && !$user->rank) {
+                return back()->with('status', 'Error: This location requires admin privileges');
+            }
+            if ($location->requiredRank === 'premium' && $user->rank !== 'premium' && $user->rank !== 'admin') {
+                return back()->with('status', 'Error: This location requires premium privileges');
+            }
         }
 
         // Get location details with nodes
@@ -153,7 +159,8 @@ class ServerController extends Controller
         $requestedPorts = $request->allocations ?? 1; // Default to 1 port
 
         // Check if user has enough allocations for all ports (1 default + additional)
-        if (!$user->hasEnoughAllocations($requestedPorts + 1)) {
+        // Bypass resource check if demo
+        if (!$isDemo && !$user->hasEnoughAllocations($requestedPorts + 1)) {
             $available = $user->limits['allocations'] - $user->resources['allocations'];
             return back()->with('status', "Error: Not enough allocation slots. Need: " . ($requestedPorts) . ", Available: " . $available);
         }
@@ -169,24 +176,37 @@ class ServerController extends Controller
             'allocations' => $user->limits['allocations'] - $user->resources['allocations']
         ];
 
-        // Validate requested resources
-        $requested = [
-            'cpu' => $request->cpu,
-            'memory' => $request->memory,
-            'disk' => $request->disk,
-            'databases' => $request->databases ?? 0,
-            'backups' => $request->backups ?? 0,
-            'allocations' => $requestedPorts // Set requested ports
+        // Default demo resources
+        $demoResources = [
+            'cpu' => 100,
+            'memory' => 1024,
+            'disk' => 5120,
+            'databases' => 1,
+            'backups' => 1,
+            'allocations' => 1
         ];
 
-        // Check if there are server slots left
-        if ($remaining['servers'] < 1) {
+        // Validate requested resources
+        $requested = [
+            'cpu' => $isDemo ? $demoResources['cpu'] : $request->cpu,
+            'memory' => $isDemo ? $demoResources['memory'] : $request->memory,
+            'disk' => $isDemo ? $demoResources['disk'] : $request->disk,
+            'databases' => $isDemo ? $demoResources['databases'] : ($request->databases ?? 0),
+            'backups' => $isDemo ? $demoResources['backups'] : ($request->backups ?? 0),
+            'allocations' => $isDemo ? $demoResources['allocations'] : $requestedPorts
+        ];
+
+        // Check if there are server slots left (bypass if demo)
+        if (!$isDemo && $remaining['servers'] < 1) {
             return back()->with('status', "Error: No Server Slots left :(");
         }
 
-        foreach ($requested as $resource => $amount) {
-            if ($amount > $remaining[$resource]) {
-                return back()->with('status', "Error: You don't have enough {$resource} resources (Requested: {$amount}, Available: {$remaining[$resource]})");
+        // Check resources (bypass if demo)
+        if (!$isDemo) {
+            foreach ($requested as $resource => $amount) {
+                if ($amount > $remaining[$resource]) {
+                    return back()->with('status', "Error: You don't have enough {$resource} resources (Requested: {$amount}, Available: {$remaining[$resource]})");
+                }
             }
         }
 
@@ -225,26 +245,28 @@ class ServerController extends Controller
 
         Log::info('Environment variables:', $environment);
 
-        // Continue with server creation...
+        // Add demo name prefix if demo server
+        $serverName = $isDemo ? "DEMO-" . $request->name : $request->name;
 
+        // Continue with server creation...
         $serverPayload = [
-            'name' => $request->name,
+            'name' => $serverName,
             'user' => (int) $user->pterodactyl_id,
             'egg' => (int) $egg->EggID,
             'docker_image' => $eggDetails['attributes']['docker_image'],
             'startup' => $eggDetails['attributes']['startup'],
             'environment' => $environment,
             'limits' => [
-                'memory' => (int) $request->memory,
+                'memory' => (int) $requested['memory'],
                 'swap' => 0,
-                'disk' => (int) $request->disk,
+                'disk' => (int) $requested['disk'],
                 'io' => 500,
-                'cpu' => (int) $request->cpu,
+                'cpu' => (int) $requested['cpu'],
             ],
             'feature_limits' => [
-                'databases' => (int) ($request->databases ?? 0),
-                'backups' => (int) ($request->backups ?? 0),
-                'allocations' => (int) $requestedPorts // Set requested ports
+                'databases' => (int) $requested['databases'],
+                'backups' => (int) $requested['backups'],
+                'allocations' => (int) $requested['allocations']
             ],
             'allocation' => [
                 'default' => $allocation['id'],
@@ -255,25 +277,37 @@ class ServerController extends Controller
 
         $server = $pterodactylService->createServer($serverPayload);
 
-        // Update user resources
-        $user->resources = [
-            'cpu' => $user->resources['cpu'] + $request->cpu,
-            'memory' => $user->resources['memory'] + $request->memory,
-            'disk' => $user->resources['disk'] + $request->disk,
-            'servers' => $user->resources['servers'] + 1,
-            'databases' => $user->resources['databases'] + ($request->databases ?? 0),
-            'backups' => $user->resources['backups'] + ($request->backups ?? 0),
-            'allocations' => $user->resources['allocations'] + $requestedPorts // Update with total ports used
-        ];
+        // Only update user resources if not a demo server
+        if (!$isDemo) {
+            $user->resources = [
+                'cpu' => $user->resources['cpu'] + $requested['cpu'],
+                'memory' => $user->resources['memory'] + $requested['memory'],
+                'disk' => $user->resources['disk'] + $requested['disk'],
+                'servers' => $user->resources['servers'] + 1,
+                'databases' => $user->resources['databases'] + $requested['databases'],
+                'backups' => $user->resources['backups'] + $requested['backups'],
+                'allocations' => $user->resources['allocations'] + $requested['allocations']
+            ];
+            $user->save();
+        }
 
-        $user->save();
+        // If this is a demo server, create a record in the DemoServer table
+        if ($isDemo) {
+            \App\Models\DemoServer::create([
+                'server_id' => $server['attributes']['id'],
+                'user_id' => $user->id,
+                'expires_at' => now()->addHours(48),
+                'server_identifier' => $server['attributes']['identifier'],
+            ]);
+        }
 
         $serverUrl = env('PTERODACTYL_API_URL') . '/server/' . $server['attributes']['identifier'];
 
         return back()->with([
-            'status' => 'Success: Your server has been successfully created',
+            'status' => $isDemo ? 'Success: Your demo server has been created! It will expire in 48 hours.' : 'Success: Your server has been successfully created',
             'server_url' => $serverUrl,
-            'server_id' => $server['attributes']['identifier']
+            'server_id' => $server['attributes']['identifier'],
+            'is_demo' => $isDemo
         ]);
 
     } catch (\Exception $e) {

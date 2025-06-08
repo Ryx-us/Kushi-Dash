@@ -33,6 +33,8 @@ class AppServiceProvider extends ServiceProvider
             }
         });
     })->everyFifteenMinutes();
+
+    $schedule->command('demo:suspend-expired')->hourly();
 }
 
     /**
