@@ -8,6 +8,16 @@ use Illuminate\Support\Facades\Log;
 use App\Services\PterodactylService;
 use Illuminate\Support\Facades\Cache;
 use App\Jobs\UpdateUserResources;
+use App\Jobs\SuspendExpiredDemoServers;
+
+/**
+ * This is where the Jobs are run
+ * To restart or Refersh a Job runner, reset or change the config on a 
+ * server to reset cache and restart ALL jobs.
+ * 
+ * Job runner of Kushi-Dash
+ */
+
 
 class HandleInertiaRequests extends Middleware
 {
@@ -69,9 +79,14 @@ class HandleInertiaRequests extends Middleware
 
         $shopPrices = config('shop.prices');
 
+        SuspendExpiredDemoServers::dispatch($user->id);
+
+
         if ($user && $user->pterodactyl_id) {
             // Check if we need to refresh the cache or dispatch a background job
             $cacheKey = 'user_resources_' . $user->id;
+
+
             
             // Force refresh if requested or if cache doesn't exist
             $forceRefresh = $request->has('refresh_resources') || !Cache::has($cacheKey);
@@ -82,6 +97,7 @@ class HandleInertiaRequests extends Middleware
                 
                 // Log that we're dispatching a job to update resources
                 Log::info("Dispatched UpdateUserResources job for user {$user->id}");
+                
                 
                 // If no cached data exists yet, use the resources from the user model
                 if (!Cache::has($cacheKey) && !empty($user->resources)) {

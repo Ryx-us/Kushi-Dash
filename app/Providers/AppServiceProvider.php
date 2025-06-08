@@ -10,6 +10,11 @@ use Illuminate\Log\Events\MessageLogged;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 use SocialiteProviders\Discord\DiscordExtendSocialite;
 use Inertia\Inertia;
+use Illuminate\Console\Scheduling\Schedule; // Add this import
+use App\Models\User; // Add this import
+use App\Jobs\UpdateUserResources; // Add this import
+use App\Jobs\SuspendExpiredDemoServers; // Add this import
+use App\Jobs\TestJob; // Add this import
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -18,24 +23,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Registration logic if needed
+        // No need for scheduler here
     }
-
-    protected function schedule(Schedule $schedule)
-{
-    // Update user resources every 15 minutes to keep the cache fresh
-    $schedule->call(function () {
-        User::whereNotNull('pterodactyl_id')->chunk(20, function ($users) {
-            foreach ($users as $user) {
-                UpdateUserResources::dispatch($user->id);
-                // Add a small delay between jobs to prevent overwhelming the Pterodactyl API
-                sleep(1);
-            }
-        });
-    })->everyFifteenMinutes();
-
-    $schedule->command('demo:suspend-expired')->hourly();
-}
 
     /**
      * Bootstrap any application services.
@@ -47,6 +36,26 @@ class AppServiceProvider extends ServiceProvider
             SocialiteWasCalled::class,
             DiscordExtendSocialite::class . '@handle'
         );
+
+        // SCHEDULE THE JOBS HERE INSTEAD
+        $this->app->booted(function () {
+            $schedule = $this->app->make(Schedule::class);
+            
+            // Update user resources every 15 minutes
+            $schedule->call(function () {
+                User::whereNotNull('pterodactyl_id')->chunk(20, function ($users) {
+                    foreach ($users as $user) {
+                        UpdateUserResources::dispatch($user->id);
+                        // Add a small delay between jobs to prevent overwhelming the Pterodactyl API
+                        sleep(1);
+                    }
+                });
+            })->everyFifteenMinutes();
+            
+            // Check for expired demo servers hourly
+            $schedule->job(new SuspendExpiredDemoServers())->hourly();
+            $schedule->job(new TestJob())->everyMinute();
+        });
 
         // Discord webhook configuration
         $discordWebState = env('DISCORD_WEB_STATE', false);
@@ -101,6 +110,6 @@ class AppServiceProvider extends ServiceProvider
             },
         ]);
 
-        // Additional Inertia routes or configurations can be added here
+       
     }
 }

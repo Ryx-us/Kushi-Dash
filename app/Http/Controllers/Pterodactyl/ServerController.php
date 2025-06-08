@@ -129,6 +129,29 @@ public function store(Request $request, PterodactylService $pterodactylService)
 
         // Check if this is a demo server request
         $isDemo = $request->input('is_demo', false) && env('DEMO', false);
+
+        if ($isDemo) {
+    $existingDemoServer = \App\Models\DemoServer::where('user_id', $user->id)
+        ->where('expires_at', '>', now())
+        ->first();
+    
+    if ($existingDemoServer) {
+        Log::info('Demo server creation blocked: User already has an active demo server', [
+            'user_id' => $user->id,
+            'existing_demo_server_id' => $existingDemoServer->server_id
+        ]);
+        
+        // Get the server URL for the existing demo server
+        $serverUrl = env('PTERODACTYL_API_URL') . '/server/' . $existingDemoServer->server_identifier;
+        
+        return back()->with([
+            'status' => 'Error: You already have an active demo server. You can only have one demo server at a time.',
+            'server_url' => $serverUrl,
+            'server_id' => $existingDemoServer->server_identifier,
+            'is_demo' => true
+        ]);
+    }
+}
         
         // Check rank requirements (bypass if demo mode)
         if (!$isDemo) {
@@ -178,8 +201,8 @@ public function store(Request $request, PterodactylService $pterodactylService)
 
         // Default demo resources
         $demoResources = [
-            'cpu' => 100,
-            'memory' => 1024,
+            'cpu' => 250,
+            'memory' => 4096,
             'disk' => 5120,
             'databases' => 1,
             'backups' => 1,
@@ -296,7 +319,7 @@ public function store(Request $request, PterodactylService $pterodactylService)
             \App\Models\DemoServer::create([
                 'server_id' => $server['attributes']['id'],
                 'user_id' => $user->id,
-                'expires_at' => now()->addHours(48),
+                'expires_at' => now()->addSeconds(20),
                 'server_identifier' => $server['attributes']['identifier'],
             ]);
         }

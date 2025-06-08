@@ -350,7 +350,7 @@ export default function ServerCreate() {
             {demoEnabled && (
               <Alert className="bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-400 border-amber-200 dark:border-amber-800">
                 <AlertDescription>
-                  Demo servers are configured with preset resources: 100% CPU, 1024MB Memory, 5120MB Disk, 
+                  Demo servers are configured with preset resources: 250% CPU, 2048MB Memory, 5120MB Disk, 
                   and 1 each for databases, backups, and ports.
                 </AlertDescription>
               </Alert>
@@ -496,10 +496,10 @@ const ResourceInput = ({ label, value, onChange, min, max, step, remaining, isDe
       let demoValue;
       switch(label) {
         case 'CPU':
-          demoValue = 100;
+          demoValue = 250;
           break;
         case 'Memory':
-          demoValue = 1024;
+            demoValue = 4096;
           break;
         case 'Disk':
           demoValue = 5120;

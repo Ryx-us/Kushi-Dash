@@ -97,7 +97,7 @@ export default function DisplayServer({ className = '' }) {
                 serverData = data;
             }
             
-            setServers(serverData.servers);
+            setServers(serverData.servers || []);
             
             if (Array.isArray(serverData)) {
                 serverData.forEach(server => {
@@ -109,6 +109,7 @@ export default function DisplayServer({ className = '' }) {
         })
         .catch(error => {
             console.error("Error fetching servers:", error);
+            setServers([]);
         })
         .finally(() => {
             setIsLoading(false);
@@ -126,6 +127,7 @@ export default function DisplayServer({ className = '' }) {
         window.open(serverUrl, '_blank');
     };
 
+    // Only show loading skeleton during initial load
     if (isLoading && !isRefreshing) {
         return (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-5">
@@ -152,33 +154,7 @@ export default function DisplayServer({ className = '' }) {
         )
     }
 
-    if (!servers || servers.length === 0) {
-        return (
-            <div className="mt-6">
-                <Card className="border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-black">
-                    <CardContent className="p-6 flex flex-col items-center justify-center space-y-4">
-                        <img 
-                            src="/Empty-pana.svg" 
-                            alt="No Servers" 
-                            className="w-80 h-80"
-                        />
-                        <p className="text-zinc-600 dark:text-zinc-400 text-lg font-medium">
-                            You don't have any servers yet
-                        </p>
-                        <Button 
-                            variant="outline"
-                            className="border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
-                            onClick={() => window.location.href = '/deploy'}
-                        >
-                            <Server className="mr-2 h-4 w-4" />
-                            Create Your First Server
-                        </Button>
-                    </CardContent>
-                </Card>
-            </div>
-        )
-    }
-
+    // Show refresh button at the top when not in initial loading state
     return (
         <>
             <div className="flex justify-between items-center mb-6 py-3 ">
@@ -195,136 +171,176 @@ export default function DisplayServer({ className = '' }) {
                 </Button>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-3">
-                {servers.map((server) => {
-                    const { attributes } = server
-                    const egg = eggData[attributes.egg]
-                    const { status, suspended, limits, feature_limits } = attributes
-                    
-                    let statusDot = 'bg-green-400'
-                    let statusText = 'Online'
-                    
-                    if (status === 'installing') {
-                        statusDot = 'bg-yellow-300'
-                        statusText = 'Installing'
-                    } else if (status === 'running') {
-                        statusDot = 'bg-zinc-300'
-                        statusText = 'Online'
-                    } else if (suspended) {
-                        statusDot = 'bg-zinc-700'
-                        statusText = 'Suspended'
-                    }
+            {/* If refreshing, show a loading indicator instead of emptying the server list */}
+            {isRefreshing && (
+                <div className="flex justify-center my-4">
+                    <div className="flex items-center space-x-2 text-zinc-500">
+                        <RefreshCw className="h-5 w-5 animate-spin" />
+                        <span>Refreshing servers...</span>
+                    </div>
+                </div>
+            )}
 
-                    return (
-                        <Card
-                            key={attributes.uuid}
-                            className="overflow-hidden border-zinc-200 dark:border-zinc-800 bg-white dark:bg-black hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200"
-                        >
-                            {suspended && (
-                                <div className="absolute inset-0 bg-white/90 dark:bg-black/90 flex flex-col items-center justify-center gap-2 z-10">
-                                    <img 
-                                        src="/suspended.png" 
-                                        alt="Suspended Clock" 
-                                        className="w-24 h-24 opacity-50"
-                                    />
-                                    <p className="text-zinc-700 dark:text-zinc-300 font-semibold">Server Suspended</p>
-                                    <p className="text-zinc-500 text-sm">Please contact Support</p>
-                                </div>
-                            )}
+            {/* Show empty state only after loading and when no servers are found */}
+            {!isRefreshing && (!servers || servers.length === 0) && (
+                <div className="mt-6">
+                    <Card className="border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-black">
+                        <CardContent className="p-6 flex flex-col items-center justify-center space-y-4">
+                            <img 
+                                src="/Empty-pana.svg" 
+                                alt="No Servers" 
+                                className="w-80 h-80"
+                            />
+                            <p className="text-zinc-600 dark:text-zinc-400 text-lg font-medium">
+                                You don't have any servers yet
+                            </p>
+                            <Button 
+                                variant="outline"
+                                className="border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+                                onClick={() => window.location.href = '/deploy'}
+                            >
+                                <Server className="mr-2 h-4 w-4" />
+                                Create Your First Server
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
 
-                            <CardHeader className="pb-2 border-b border-zinc-200/50 dark:border-zinc-800/50">
-                                <div className="flex items-center space-x-3">
-                                    {egg?.icon ? (
-                                        <img src={egg.icon} alt="" className="w-7 h-7 rounded-md opacity-80" />
-                                    ) : (
-                                        <Server className="w-6 h-6 text-zinc-500" />
-                                    )}
-                                    <h3 className="text-lg font-medium text-zinc-800 dark:text-zinc-200 truncate">
-                                        {attributes.name}
-                                    </h3>
-                                </div>
-                            </CardHeader>
+            {/* Display servers only when not refreshing and we have servers */}
+            {!isRefreshing && servers && servers.length > 0 && (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-3">
+                    {servers.map((server) => {
+                        const { attributes } = server
+                        const egg = eggData[attributes.egg]
+                        const { status, suspended, limits, feature_limits } = attributes
+                        
+                        let statusDot = 'bg-green-400'
+                        let statusText = 'Online'
+                        
+                        if (status === 'installing') {
+                            statusDot = 'bg-yellow-300'
+                            statusText = 'Installing'
+                        } else if (status === 'running') {
+                            statusDot = 'bg-zinc-300'
+                            statusText = 'Online'
+                        } else if (suspended) {
+                            statusDot = 'bg-zinc-700'
+                            statusText = 'Suspended'
+                        }
 
-                            <CardContent className="py-4 space-y-4">
-                                <div className="flex items-center justify-between text-xs">
-                                    <div className="flex items-center space-x-2">
-                                        <div className={`w-1.5 h-1.5 rounded-full ${statusDot}`} />
-                                        <span className="text-zinc-600 dark:text-zinc-400">{statusText}</span>
+                        return (
+                            <Card
+                                key={attributes.uuid}
+                                className="overflow-hidden border-zinc-200 dark:border-zinc-800 bg-white dark:bg-black hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 relative"
+                            >
+                                {suspended && (
+                                    <div className="absolute inset-0 bg-white/90 dark:bg-black/90 flex flex-col items-center justify-center gap-2 z-10">
+                                        <img 
+                                            src="/suspended.png" 
+                                            alt="Suspended Clock" 
+                                            className="w-24 h-24 opacity-50"
+                                        />
+                                        <p className="text-zinc-700 dark:text-zinc-300 font-semibold">Server Suspended</p>
+                                        <p className="text-zinc-500 text-sm">Please contact Support</p>
                                     </div>
-                                    
-                                    <div className="flex items-center space-x-1.5">
-                                        <MapPin className="h-3 w-3 text-zinc-500" />
-                                        <span className="text-zinc-500">
-                                            Node {attributes.node}
-                                        </span>
+                                )}
+
+                                <CardHeader className="pb-2 border-b border-zinc-200/50 dark:border-zinc-800/50">
+                                    <div className="flex items-center space-x-3">
+                                        {egg?.icon ? (
+                                            <img src={egg.icon} alt="" className="w-7 h-7 rounded-md opacity-80" />
+                                        ) : (
+                                            <Server className="w-6 h-6 text-zinc-500" />
+                                        )}
+                                        <h3 className="text-lg font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                                            {attributes.name}
+                                        </h3>
                                     </div>
-                                </div>
+                                </CardHeader>
 
-                                <div className="grid grid-cols-2 gap-3">
-                                    <ResourceItem 
-                                        icon={<MemoryStickIcon className="h-4 w-4 text-zinc-500" />} 
-                                        label="Memory" 
-                                        value={`${limits.memory} MB`} 
-                                    />
-                                    <ResourceItem 
-                                        icon={<Cpu className="h-4 w-4 text-zinc-500" />} 
-                                        label="CPU" 
-                                        value={`${limits.cpu}%`} 
-                                    />
-                                    <ResourceItem 
-                                        icon={<HardDrive className="h-4 w-4 text-zinc-500" />} 
-                                        label="Storage" 
-                                        value={`${limits.disk} MB`} 
-                                    />
-                                    <ResourceItem 
-                                        icon={<Network className="h-4 w-4 text-zinc-500" />} 
-                                        label="Ports" 
-                                        value={feature_limits.allocations} 
-                                    />
-                                    <ResourceItem 
-                                        icon={<Save className="h-4 w-4 text-zinc-500" />} 
-                                        label="Backups" 
-                                        value={feature_limits.backups} 
-                                    />
-                                    <ResourceItem 
-                                        icon={<Database className="h-4 w-4 text-zinc-500" />} 
-                                        label="Databases" 
-                                        value={feature_limits.databases} 
-                                    />
-                                </div>
-                            </CardContent>
+                                <CardContent className="py-4 space-y-4">
+                                    <div className="flex items-center justify-between text-xs">
+                                        <div className="flex items-center space-x-2">
+                                            <div className={`w-1.5 h-1.5 rounded-full ${statusDot}`} />
+                                            <span className="text-zinc-600 dark:text-zinc-400">{statusText}</span>
+                                        </div>
+                                        
+                                        <div className="flex items-center space-x-1.5">
+                                            <MapPin className="h-3 w-3 text-zinc-500" />
+                                            <span className="text-zinc-500">
+                                                Node {attributes.node}
+                                            </span>
+                                        </div>
+                                    </div>
 
-                            <CardFooter className="justify-end space-x-1 py-2 border-t border-zinc-200/50 dark:border-zinc-800/50">
-                                <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    onClick={() => handleEdit(attributes.id)}
-                                    className="text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:text-zinc-300 dark:hover:bg-zinc-800"
-                                >
-                                    <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    onClick={() => handleExternalLinkClick(attributes.identifier)}
-                                    className="text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:text-zinc-300 dark:hover:bg-zinc-800"
-                                >
-                                    <ExternalLink className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="text-zinc-500 hover:text-zinc-700 hover:bg-red-600 dark:hover:text-red-100 dark:hover:bg-red-800"
-                                    onClick={() => setServerToDelete(attributes.id)}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    )
-                })}
-            </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <ResourceItem 
+                                            icon={<MemoryStickIcon className="h-4 w-4 text-zinc-500" />} 
+                                            label="Memory" 
+                                            value={`${limits.memory} MB`} 
+                                        />
+                                        <ResourceItem 
+                                            icon={<Cpu className="h-4 w-4 text-zinc-500" />} 
+                                            label="CPU" 
+                                            value={`${limits.cpu}%`} 
+                                        />
+                                        <ResourceItem 
+                                            icon={<HardDrive className="h-4 w-4 text-zinc-500" />} 
+                                            label="Storage" 
+                                            value={`${limits.disk} MB`} 
+                                        />
+                                        <ResourceItem 
+                                            icon={<Network className="h-4 w-4 text-zinc-500" />} 
+                                            label="Ports" 
+                                            value={feature_limits.allocations} 
+                                        />
+                                        <ResourceItem 
+                                            icon={<Save className="h-4 w-4 text-zinc-500" />} 
+                                            label="Backups" 
+                                            value={feature_limits.backups} 
+                                        />
+                                        <ResourceItem 
+                                            icon={<Database className="h-4 w-4 text-zinc-500" />} 
+                                            label="Databases" 
+                                            value={feature_limits.databases} 
+                                        />
+                                    </div>
+                                </CardContent>
 
+                                <CardFooter className="justify-end space-x-1 py-2 border-t border-zinc-200/50 dark:border-zinc-800/50">
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => handleEdit(attributes.id)}
+                                        className="text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:text-zinc-300 dark:hover:bg-zinc-800"
+                                    >
+                                        <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => handleExternalLinkClick(attributes.identifier)}
+                                        className="text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:text-zinc-300 dark:hover:bg-zinc-800"
+                                    >
+                                        <ExternalLink className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="text-zinc-500 hover:text-zinc-700 hover:bg-red-600 dark:hover:text-red-100 dark:hover:bg-red-800"
+                                        onClick={() => setServerToDelete(attributes.id)}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        )
+                    })}
+                </div>
+            )}
+
+            {/* Alert dialog */}
             <AlertDialog open={!!serverToDelete} onOpenChange={() => setServerToDelete(null)}>
                 <AlertDialogContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
                     <AlertDialogHeader>

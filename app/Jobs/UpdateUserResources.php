@@ -11,6 +11,11 @@ use App\Models\User;
 use App\Services\PterodactylService;
 use Illuminate\Support\Facades\Log;
 
+
+/**
+ * 
+ */
+
 class UpdateUserResources implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;

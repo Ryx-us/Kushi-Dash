@@ -1,12 +1,5 @@
 <?php
 
-/***
- * Demo Servers are servers that are created for users to test the platform.
- * They are temporary and have an expiration date.
- * These servers will be suspended after 48 hours by default.
- */
-
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
