@@ -319,7 +319,7 @@ public function store(Request $request, PterodactylService $pterodactylService)
             \App\Models\DemoServer::create([
                 'server_id' => $server['attributes']['id'],
                 'user_id' => $user->id,
-                'expires_at' => now()->addHours(48),
+                'expires_at' => now()->addHours(48), // Demo servers expire in 48 hours
                 'server_identifier' => $server['attributes']['identifier'],
             ]);
         }

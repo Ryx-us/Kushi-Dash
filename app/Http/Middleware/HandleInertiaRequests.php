@@ -79,7 +79,9 @@ class HandleInertiaRequests extends Middleware
 
         $shopPrices = config('shop.prices');
 
+       if ($user) {
         SuspendExpiredDemoServers::dispatch($user->id);
+    }
 
 
         if ($user && $user->pterodactyl_id) {
@@ -143,7 +145,7 @@ class HandleInertiaRequests extends Middleware
 
         return array_merge(parent::share($request), [
             'auth' => [
-                'user' => $user
+               'user' => $user ?? null
             ],
             'shop' => [
                 'prices' => $shopPrices,

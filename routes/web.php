@@ -161,7 +161,18 @@ Route::middleware('auth')->group(function () {
 
 // Main landing page redirecting based on authentication status
 Route::get('/', function () {
-    return Auth::check() ? redirect('/dashboard') : redirect('/login');
+    try {
+        // Check if user is authenticated but use null-safe approach
+        if (Auth::check()) {
+            return redirect('/dashboard');
+        } else {
+            return redirect('/login');
+        }
+    } catch (\Exception $e) {
+        \Log::error('Error in root route: ' . $e->getMessage());
+        // Fallback to login page if any error occurs
+        return redirect('/login');
+    }
 });
 
 // Discord login routes
