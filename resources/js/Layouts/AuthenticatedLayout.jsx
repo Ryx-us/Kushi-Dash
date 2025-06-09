@@ -19,7 +19,18 @@ import {
   LucideKeySquare,
   Search,
   Command,
+  LucideChevronDown,
+  LucideRadio,
+  LucideServerCog,
+  LucideServer,
 } from "lucide-react"
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import ApplicationLogo from "@/components/ApplicationLogo"
 import {
   Breadcrumb,
@@ -131,6 +142,9 @@ const getUserInitials = (name) => {
 // App Sidebar Component
 function AppSidebar({ auth, vmsConfig, sidebartab }) {
   const [searchFocused, setSearchFocused] = useState(false);
+
+  // Add to the top of your AppSidebar component, near your other state declarations
+  const [expandedMenu, setExpandedMenu] = useState(null);
   
   const { SearchComponent, SearchTrigger, openSearch } = useSearch();
 
@@ -323,6 +337,67 @@ function AppSidebar({ auth, vmsConfig, sidebartab }) {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
+              {/* Broadcast with dropdown */}
+<SidebarMenuItem>
+  <SidebarMenuButton
+    isActive={sidebartab === "broadcast-india" || sidebartab === "broadcast-uk"}
+    className={cn(
+      "h-10 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+      "data-[active=true]:bg-zinc-900 data-[active=true]:text-white dark:data-[active=true]:bg-zinc-100 dark:data-[active=true]:text-zinc-900",
+      "rounded-lg transition-colors",
+    )}
+    onClick={(e) => {
+      e.preventDefault();
+      setExpandedMenu(expandedMenu === "broadcast" ? null : "broadcast");
+    }}
+  >
+    <div className="flex items-center w-full">
+      <LucideRadio className="h-5 w-5 mr-1" />
+      <span className="font-medium">Broadcast</span>
+      <LucideChevronDown 
+        className={cn(
+          "h-4 w-4 ml-auto transition-transform", 
+          expandedMenu === "broadcast" ? "transform rotate-180" : ""
+        )} 
+      />
+    </div>
+  </SidebarMenuButton>
+  
+  {expandedMenu === "broadcast" && (
+    <div className="ml-8 mt-1 space-y-1">
+      <SidebarMenuButton
+        asChild
+        isActive={sidebartab === "broadcast-india"}
+        className={cn(
+          "h-9 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+          "data-[active=true]:bg-zinc-200 data-[active=true]:text-zinc-900 dark:data-[active=true]:bg-zinc-800 dark:data-[active=true]:text-zinc-100",
+          "rounded-lg transition-colors pl-3",
+        )}
+      >
+        <Link href="/broadcast/india" className="flex items-center">
+          <LucideServerCog className="h-2 w-2 mr-2 text-green-500" />
+          <span className="text-sm">India</span>
+        </Link>
+      </SidebarMenuButton>
+      
+      <SidebarMenuButton
+        asChild
+        isActive={sidebartab === "broadcast-uk"}
+        className={cn(
+          "h-9 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+          "data-[active=true]:bg-zinc-200 data-[active=true]:text-zinc-900 dark:data-[active=true]:bg-zinc-800 dark:data-[active=true]:text-zinc-100",
+          "rounded-lg transition-colors pl-3",
+        )}
+      >
+        <Link href="/broadcast/uk" className="flex items-center">
+          <LucideServerCog className="h-2 w-2 mr-2 text-blue-500" />
+          <span className="text-sm">UK</span>
+        </Link>
+      </SidebarMenuButton>
+    </div>
+  )}
+</SidebarMenuItem>
 
               {/* Admin Panel */}
               {auth.user.rank === "admin" && (

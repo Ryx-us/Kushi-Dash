@@ -27,6 +27,7 @@
     "dependencies": {
         "@babel/plugin-transform-react-jsx": "^7.27.1",
         "@heroicons/react": "^2.2.0",
+        "@million/lint": "^1.0.14",
         "@radix-ui/react-alert-dialog": "^1.1.2",
         "@radix-ui/react-avatar": "^1.1.10",
         "@radix-ui/react-checkbox": "^1.1.2",
