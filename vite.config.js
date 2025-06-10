@@ -16,7 +16,7 @@ export default defineConfig({
             auto: true, // Enable automatic mode for component optimization
             mute: false, // Set to true to reduce logs
         }),
-        splitVendorChunkPlugin()
+        splitVendorChunkPlugin(),
         react(),
         MillionLint.vite()
     ],
