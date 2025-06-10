@@ -46,9 +46,9 @@ export default function AdminDashboard() {
                     </div>
                 </div>
 
-                <Suspense fallback={<EarnFallback />}>
+               
                     <Earn />
-                </Suspense>
+                
             </AuthenticatedLayout>
         </Suspense>
     );

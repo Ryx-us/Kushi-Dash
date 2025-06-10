@@ -111,9 +111,9 @@ export default function AdminDashboard() {
                     </div>
 
                     <ErrorBoundary>
-                        <Suspense fallback={<ServerCreateFallback />}>
+                        
                             <ServerCreate />
-                        </Suspense>
+                       
                     </ErrorBoundary>
                 </AuthenticatedLayout>
             </Suspense>

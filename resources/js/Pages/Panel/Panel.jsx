@@ -36,13 +36,13 @@ export default function Panel() {
 
                 <div className="py-12">
                     <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                        <Suspense fallback={<ComponentFallback />}>
+                       
                             <PterodactylContainer className="max-w-xl"/>
-                        </Suspense>
                         
-                        <Suspense fallback={<ComponentFallback />}>
+                        
+                        
                             <PasswordResetFormPterodactyl className="max-w-xl"/>
-                        </Suspense>
+                        
                         
                         <Card className="max-w-xl">
                             <CardHeader> Pterodactyl Panel </CardHeader>

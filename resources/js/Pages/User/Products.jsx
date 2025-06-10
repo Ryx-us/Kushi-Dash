@@ -33,9 +33,9 @@ export default function AdminDashboard() {
                     </div>
                 </div>
 
-                <Suspense fallback={<ProductsFallback />}>
+                
                     <Products />
-                </Suspense>
+               
             </AuthenticatedLayout>
         </Suspense>
     );
