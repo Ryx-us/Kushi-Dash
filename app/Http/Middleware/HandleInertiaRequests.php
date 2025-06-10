@@ -72,63 +72,49 @@ class HandleInertiaRequests extends Middleware
         $shopPrices = config('shop.prices');
 
         // Only run this for authenticated users and not on every page load
-        // Limit to specific routes where this data is actually needed
+        // Determine if we're on a resource-intensive route
         $resourceIntensiveRoutes = [
             'dashboard', 'panel', 'deploy', 'plans', 'shop', 'profile'
         ];
         
-        $currentRoute = $request->route()->getName() ?? '';
+        $currentRoute = $request->route() ? ($request->route()->getName() ?? '') : '';
         $requiresResources = in_array($currentRoute, $resourceIntensiveRoutes) || 
                              $request->has('refresh_resources');
 
+        // Only process resources for authenticated users on routes that need it
         if ($user && $requiresResources) {
-            // Only run suspension job periodically (once per session)
+            // Use a long cache time for resources - they rarely change dramatically
+            $cacheKey = 'user_resources_' . $user->id;
+            $cachedData = Cache::get($cacheKey);
+            
+            // Check if we need fresh data
+            $forceRefresh = $request->has('refresh_resources');
+            
+            if ($cachedData && !$forceRefresh) {
+                // Use cached data - fastest path
+                $totalResources = $cachedData['totalResources'];
+            } else {
+                // No cache or forced refresh - use what we have in the DB for now
+                if (!empty($user->resources)) {
+                    $totalResources = $user->resources;
+                }
+                
+                // Queue background job to update resources without waiting for it
+                if ($user->pterodactyl_id) {
+                    // Add jitter to prevent all jobs running at once
+                    $jitter = rand(1, 20); 
+                    UpdateUserResources::dispatch($user->id)
+                        ->onQueue('low')
+                        ->delay(now()->addSeconds($jitter));
+                }
+            }
+            
+            // For suspension checks, use a separate weekly cache to avoid frequent checks
             $suspensionCacheKey = 'suspension_check_' . $user->id;
             if (!Cache::has($suspensionCacheKey)) {
-                SuspendExpiredDemoServers::dispatch($user->id);
-                // Set a cache so we don't run this too frequently
-                Cache::put($suspensionCacheKey, true, 3600); // once per hour
-            }
-
-            if ($user->pterodactyl_id) {
-                // Check if we need to refresh the cache or dispatch a background job
-                $cacheKey = 'user_resources_' . $user->id;
-                
-                // Force refresh if requested or if cache doesn't exist or is older than 15 minutes
-                $forceRefresh = $request->has('refresh_resources') || !Cache::has($cacheKey);
-                
-                if ($forceRefresh) {
-                    // Dispatch job to update resources in the background, but don't wait for it
-                    UpdateUserResources::dispatch($user->id)->onQueue('low');
-                    
-                    // Log at debug level instead of info to reduce log spam
-                    Log::debug("Dispatched UpdateUserResources job for user {$user->id}");
-                    
-                    // If no cached data exists yet, use the resources from the user model
-                    if (!Cache::has($cacheKey) && !empty($user->resources)) {
-                        $totalResources = $user->resources;
-                    }
-                } else {
-                    // Get cached resources if available
-                    $cachedData = Cache::get($cacheKey);
-                    
-                    if ($cachedData) {
-                        $totalResources = $cachedData['totalResources'];
-                        // Reduce log spam by using debug level
-                        Log::debug("Using cached resources for user {$user->id}");
-                    } else {
-                        // If no cache but we have resources in the user model
-                        $totalResources = $user->resources ?: $totalResources;
-                        
-                        // Store in cache for future requests
-                        Cache::put($cacheKey, [
-                            'totalResources' => $totalResources,
-                            'serverCount' => $totalResources['servers'] ?? 0
-                        ], 900); // 15 minutes
-                    }
-                }
-            } else {
-                Log::debug("User ID {$user->id} does not have a pterodactyl_id.");
+                SuspendExpiredDemoServers::dispatch($user->id)->onQueue('low');
+                // Set a cache so we don't run this too frequently - much longer time
+                Cache::put($suspensionCacheKey, true, 86400); // Check once per day
             }
         }
 
@@ -149,13 +135,8 @@ class HandleInertiaRequests extends Middleware
         if (config('app.env') !== 'production') {
             $debugInfo = [
                 'requestTime' => $executionTime . 'ms',
-                'requestStarted' => date('Y-m-d H:i:s', (int)$this->startTime),
-                'requestEnded' => date('Y-m-d H:i:s', (int)$endTime),
-                'requestPath' => $request->path(),
-                'requestMethod' => $request->method(),
-                'serverLoad' => sys_getloadavg()[0],
-                'memory' => round(memory_get_usage() / 1024 / 1024, 2) . 'MB',
-                'cacheHit' => !($request->has('refresh_resources') || !Cache::has('user_resources_' . ($user ? $user->id : 0)))
+                'path' => $request->path(),
+                'method' => $request->method(),
             ];
         }
 
