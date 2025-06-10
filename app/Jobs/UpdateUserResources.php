@@ -11,11 +11,9 @@ use App\Models\User;
 use App\Services\PterodactylService;
 use Illuminate\Support\Facades\Log;
 
-
 /**
- * 
+ * Job to update user resource usage from Pterodactyl
  */
-
 class UpdateUserResources implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
@@ -53,6 +51,8 @@ class UpdateUserResources implements ShouldQueue
             'servers' => 0
         ];
 
+        $demoServersSkipped = 0;
+
         try {
             $servers = $pterodactylService->getUserServers($user->pterodactyl_id);
             
@@ -63,6 +63,16 @@ class UpdateUserResources implements ShouldQueue
                         Log::warning("Invalid server data format for user {$user->id}", [
                             'server' => $server
                         ]);
+                        continue;
+                    }
+                    
+                    // Skip demo servers
+                    if (isset($server['attributes']['name']) && 
+                        (stripos($server['attributes']['name'], 'demo') !== false || 
+                         stripos($server['attributes']['description'] ?? '', 'demo') !== false)) {
+                        
+                        Log::info("Skipping demo server for resource calculation: {$server['attributes']['name']} for user {$user->id}");
+                        $demoServersSkipped++;
                         continue;
                     }
                     
@@ -78,6 +88,17 @@ class UpdateUserResources implements ShouldQueue
                             $serverId = $server['attributes']['id'] ?? null;
                             if ($serverId) {
                                 $serverDetails = $pterodactylService->getServerById($serverId);
+                                
+                                // Check if this is a demo server from the detailed response
+                                if (isset($serverDetails['attributes']['name']) &&
+                                    (stripos($serverDetails['attributes']['name'], 'demo') !== false || 
+                                     stripos($serverDetails['attributes']['description'] ?? '', 'demo') !== false)) {
+                                    
+                                    Log::info("Skipping demo server (from detailed lookup) for resource calculation: {$serverDetails['attributes']['name']} for user {$user->id}");
+                                    $demoServersSkipped++;
+                                    continue;
+                                }
+                                
                                 if ($serverDetails && isset($serverDetails['attributes']['limits'])) {
                                     // Use these details instead
                                     $limits = $serverDetails['attributes']['limits'];
@@ -131,7 +152,8 @@ class UpdateUserResources implements ShouldQueue
                     }
                 }
                 
-                $totalResources['servers'] = count($servers);
+                // Count only non-demo servers
+                $totalResources['servers'] = count($servers) - $demoServersSkipped;
                 
                 // Check if resources have changed before updating
                 $hasChanged = false;
@@ -152,10 +174,13 @@ class UpdateUserResources implements ShouldQueue
                     $user->save();
                     
                     Log::info("Updated resources for user {$user->id}", [
-                        'resources' => $totalResources
+                        'resources' => $totalResources,
+                        'demoServersSkipped' => $demoServersSkipped
                     ]);
                 } else {
-                    Log::info("No resource changes for user {$user->id}");
+                    Log::info("No resource changes for user {$user->id}", [
+                        'demoServersSkipped' => $demoServersSkipped
+                    ]);
                 }
             } else {
                 // No servers found
@@ -171,7 +196,10 @@ class UpdateUserResources implements ShouldQueue
             $endTime = microtime(true);
             $executionTime = round(($endTime - $startTime) * 1000, 2);
             
-            Log::info("UpdateUserResources job completed in {$executionTime}ms for user {$user->id}");
+            Log::info("UpdateUserResources job completed in {$executionTime}ms for user {$user->id}", [
+                'demoServersSkipped' => $demoServersSkipped,
+                'totalServersIncluded' => $totalResources['servers']
+            ]);
             
         } catch (\Exception $e) {
             Log::error('Failed to update resources in job: ' . $e->getMessage(), [
