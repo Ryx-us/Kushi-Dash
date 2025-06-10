@@ -22,5 +22,6 @@ createServer((page) =>
 
             return <App {...props} />;
         },
-    })
+    },  { cluster: true })
+    
 );
