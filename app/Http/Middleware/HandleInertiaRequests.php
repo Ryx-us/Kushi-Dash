@@ -102,7 +102,7 @@ class HandleInertiaRequests extends Middleware
                     $client = new Client(['timeout' => 5.0]);
                     
                     // Add demo parameter if needed
-                    $endpoint = "/update-user/{$user->id}";
+                    $endpoint = "/update-user/{$user->pterodactyl_id}";
                     if ($hasDemo) {
                         $endpoint .= "?demo=true";
                     }
@@ -110,10 +110,10 @@ class HandleInertiaRequests extends Middleware
                     // Make the request to refresh data
                     $response = $client->get($goServiceUrl . $endpoint);
                     
-                    Log::info("Refreshed resources for user {$user->id} using Go service");
+                    Log::info("Refreshed resources for user {$user->pterodactyl_id} using Go service");
                     
                     // Get the data from the Go service
-                    $endpoint = "/get-resources/{$user->id}";
+                    $endpoint = "/get-resources/{$user->pterodactyl_id}";
                     $response = $client->get($goServiceUrl . $endpoint);
                     
                     if ($response->getStatusCode() === 200) {
@@ -135,7 +135,7 @@ class HandleInertiaRequests extends Middleware
                     
                     if ($cachedData) {
                         $totalResources = $cachedData['totalResources'];
-                        Log::info("Using cached resources for user {$user->id}");
+                        Log::info("Using cached resources for user {$user->pterodactyl_id}");
                     } else {
                         // If no cache but we have resources in the user model
                         $totalResources = $user->resources ?: $totalResources;
@@ -149,7 +149,7 @@ class HandleInertiaRequests extends Middleware
                         // Trigger background update for next time
                         try {
                             $client = new Client(['timeout' => 0.5]);
-                            $endpoint = "/update-user/{$user->id}";
+                            $endpoint = "/update-user/{$user->pterodactyl_id}";
                             if ($hasDemo) {
                                 $endpoint .= "?demo=true";
                             }
@@ -166,7 +166,7 @@ class HandleInertiaRequests extends Middleware
                 if ($forceRefresh) {
                     // Dispatch job to update resources in the background
                     UpdateUserResources::dispatch($user->id);
-                    Log::info("Dispatched UpdateUserResources job for user {$user->id}");
+                    Log::info("Dispatched UpdateUserResources job for user {$user->pterodactyl_id}");
                     
                     // If no cached data exists yet, use the resources from the user model
                     if (!Cache::has($cacheKey) && !empty($user->resources)) {
