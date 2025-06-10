@@ -1,5 +1,6 @@
 <?php
 
+
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
@@ -17,17 +18,8 @@ use App\Jobs\SuspendExpiredDemoServers;
  * 
  * Job runner of Kushi-Dash
  */
-
-
 class HandleInertiaRequests extends Middleware
 {
-    /**
-     * The root template that's loaded on the first page visit.
-     *
-     * @var string
-     */
-    // protected $rootView = 'app';
-
     /**
      * PterodactylService instance.
      *
@@ -79,55 +71,64 @@ class HandleInertiaRequests extends Middleware
 
         $shopPrices = config('shop.prices');
 
-       if ($user) {
-        SuspendExpiredDemoServers::dispatch($user->id);
-    }
+        // Only run this for authenticated users and not on every page load
+        // Limit to specific routes where this data is actually needed
+        $resourceIntensiveRoutes = [
+            'dashboard', 'panel', 'deploy', 'plans', 'shop', 'profile'
+        ];
+        
+        $currentRoute = $request->route()->getName() ?? '';
+        $requiresResources = in_array($currentRoute, $resourceIntensiveRoutes) || 
+                             $request->has('refresh_resources');
 
-
-        if ($user && $user->pterodactyl_id) {
-            // Check if we need to refresh the cache or dispatch a background job
-            $cacheKey = 'user_resources_' . $user->id;
-
-
-            
-            // Force refresh if requested or if cache doesn't exist
-            $forceRefresh = $request->has('refresh_resources') || !Cache::has($cacheKey);
-            
-            if ($forceRefresh) {
-                // Dispatch job to update resources in the background
-                UpdateUserResources::dispatch($user->id);
-                
-                // Log that we're dispatching a job to update resources
-                Log::info("Dispatched UpdateUserResources job for user {$user->id}");
-                
-                
-                // If no cached data exists yet, use the resources from the user model
-                if (!Cache::has($cacheKey) && !empty($user->resources)) {
-                    $totalResources = $user->resources;
-                }
-            } else {
-                // Get cached resources if available
-                $cachedData = Cache::get($cacheKey);
-                
-                if ($cachedData) {
-                    $totalResources = $cachedData['totalResources'];
-                    Log::info("Using cached resources for user {$user->id}");
-                } else {
-                    // If no cache but we have resources in the user model
-                    $totalResources = $user->resources ?: $totalResources;
-                    
-                    // Store in cache for future requests
-                    Cache::put($cacheKey, [
-                        'totalResources' => $totalResources,
-                        'serverCount' => $totalResources['servers'] ?? 0
-                    ], 300);
-                }
+        if ($user && $requiresResources) {
+            // Only run suspension job periodically (once per session)
+            $suspensionCacheKey = 'suspension_check_' . $user->id;
+            if (!Cache::has($suspensionCacheKey)) {
+                SuspendExpiredDemoServers::dispatch($user->id);
+                // Set a cache so we don't run this too frequently
+                Cache::put($suspensionCacheKey, true, 3600); // once per hour
             }
-        } else {
-            if ($user) {
-                Log::warning("User ID {$user->id} does not have a pterodactyl_id.");
+
+            if ($user->pterodactyl_id) {
+                // Check if we need to refresh the cache or dispatch a background job
+                $cacheKey = 'user_resources_' . $user->id;
+                
+                // Force refresh if requested or if cache doesn't exist or is older than 15 minutes
+                $forceRefresh = $request->has('refresh_resources') || !Cache::has($cacheKey);
+                
+                if ($forceRefresh) {
+                    // Dispatch job to update resources in the background, but don't wait for it
+                    UpdateUserResources::dispatch($user->id)->onQueue('low');
+                    
+                    // Log at debug level instead of info to reduce log spam
+                    Log::debug("Dispatched UpdateUserResources job for user {$user->id}");
+                    
+                    // If no cached data exists yet, use the resources from the user model
+                    if (!Cache::has($cacheKey) && !empty($user->resources)) {
+                        $totalResources = $user->resources;
+                    }
+                } else {
+                    // Get cached resources if available
+                    $cachedData = Cache::get($cacheKey);
+                    
+                    if ($cachedData) {
+                        $totalResources = $cachedData['totalResources'];
+                        // Reduce log spam by using debug level
+                        Log::debug("Using cached resources for user {$user->id}");
+                    } else {
+                        // If no cache but we have resources in the user model
+                        $totalResources = $user->resources ?: $totalResources;
+                        
+                        // Store in cache for future requests
+                        Cache::put($cacheKey, [
+                            'totalResources' => $totalResources,
+                            'serverCount' => $totalResources['servers'] ?? 0
+                        ], 900); // 15 minutes
+                    }
+                }
             } else {
-                Log::info("No authenticated user found.");
+                Log::debug("User ID {$user->id} does not have a pterodactyl_id.");
             }
         }
 
@@ -142,6 +143,21 @@ class HandleInertiaRequests extends Middleware
         // Calculate the time taken to process the request
         $endTime = microtime(true);
         $executionTime = round(($endTime - $this->startTime) * 1000, 2); // Convert to milliseconds
+
+        // Only include debug info in development environment
+        $debugInfo = [];
+        if (config('app.env') !== 'production') {
+            $debugInfo = [
+                'requestTime' => $executionTime . 'ms',
+                'requestStarted' => date('Y-m-d H:i:s', (int)$this->startTime),
+                'requestEnded' => date('Y-m-d H:i:s', (int)$endTime),
+                'requestPath' => $request->path(),
+                'requestMethod' => $request->method(),
+                'serverLoad' => sys_getloadavg()[0],
+                'memory' => round(memory_get_usage() / 1024 / 1024, 2) . 'MB',
+                'cacheHit' => !($request->has('refresh_resources') || !Cache::has('user_resources_' . ($user ? $user->id : 0)))
+            ];
+        }
 
         return array_merge(parent::share($request), [
             'auth' => [
@@ -159,35 +175,23 @@ class HandleInertiaRequests extends Middleware
                     'backups' => config('shop.max_backups', 5),
                 ],
             ],
-
-'flash' => [
-    'status' => fn () => $request->session()->get('status'),
-    'error' => fn () => $request->session()->get('error'),
-    'res' => fn () => $request->session()->get('res'),
-    'servers' => fn () => $request->session()->get('servers'),
-    'success' => fn () => $request->session()->get('success'),
-    'users' => fn () => $request->session()->get('users'),
-    'server_url' => fn () => $request->session()->get('server_url'),
-    'secerts' => fn () => $request->session()->get('secerts'),
-    'linkvertiseUrl' => fn () => $request->session()->get('linkvertiseUrl'),
-],
-            
-            
+            'flash' => [
+                'status' => fn () => $request->session()->get('status'),
+                'error' => fn () => $request->session()->get('error'),
+                'res' => fn () => $request->session()->get('res'),
+                'servers' => fn () => $request->session()->get('servers'),
+                'success' => fn () => $request->session()->get('success'),
+                'users' => fn () => $request->session()->get('users'),
+                'server_url' => fn () => $request->session()->get('server_url'),
+                'secerts' => fn () => $request->session()->get('secerts'),
+                'linkvertiseUrl' => fn () => $request->session()->get('linkvertiseUrl'),
+            ],
             'totalResources' => $totalResources,
             'linkvertiseEnabled' => config('linkvertise.enabled'),
             'linkvertiseId'      => config('linkvertise.id'),
             'pterodactyl_URL'    => env('PTERODACTYL_API_URL'),
             'vmsConfig'          => $vmsConfig,
-            'debug' => [
-                'requestTime' => $executionTime . 'ms',
-                'requestStarted' => date('Y-m-d H:i:s', (int)$this->startTime),
-                'requestEnded' => date('Y-m-d H:i:s', (int)$endTime),
-                'requestPath' => $request->path(),
-                'requestMethod' => $request->method(),
-                'serverLoad' => sys_getloadavg()[0],
-                'memory' => round(memory_get_usage() / 1024 / 1024, 2) . 'MB',
-                'cacheHit' => !($request->has('refresh_resources') || !Cache::has('user_resources_' . ($user ? $user->id : 0)))
-            ]
+            'debug' => $debugInfo
         ]);
     }
 
@@ -204,15 +208,16 @@ class HandleInertiaRequests extends Middleware
         
         $response = parent::handle($request, $next);
         
-        $endTime = microtime(true);
-        $executionTime = round(($endTime - $this->startTime) * 1000, 2);
-        
-        // Log the request timing
-        Log::debug("Request processed in {$executionTime}ms", [
-            'path' => $request->path(),
-            'method' => $request->method(),
-            'ip' => $request->ip()
-        ]);
+        // Only log timing in development to reduce overhead
+        if (config('app.env') !== 'production') {
+            $endTime = microtime(true);
+            $executionTime = round(($endTime - $this->startTime) * 1000, 2);
+            
+            Log::debug("Request processed in {$executionTime}ms", [
+                'path' => $request->path(),
+                'method' => $request->method()
+            ]);
+        }
         
         return $response;
     }
