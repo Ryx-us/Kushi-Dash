@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
@@ -10,6 +9,8 @@ use App\Services\PterodactylService;
 use Illuminate\Support\Facades\Cache;
 use App\Jobs\UpdateUserResources;
 use App\Jobs\SuspendExpiredDemoServers;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 
 /**
  * This is where the Jobs are run
@@ -18,8 +19,17 @@ use App\Jobs\SuspendExpiredDemoServers;
  * 
  * Job runner of Kushi-Dash
  */
+
+
 class HandleInertiaRequests extends Middleware
 {
+    /**
+     * The root template that's loaded on the first page visit.
+     *
+     * @var string
+     */
+    // protected $rootView = 'app';
+
     /**
      * PterodactylService instance.
      *
@@ -71,50 +81,120 @@ class HandleInertiaRequests extends Middleware
 
         $shopPrices = config('shop.prices');
 
-        // Only run this for authenticated users and not on every page load
-        // Determine if we're on a resource-intensive route
-        $resourceIntensiveRoutes = [
-            'dashboard', 'panel', 'deploy', 'plans', 'shop', 'profile'
-        ];
-        
-        $currentRoute = $request->route() ? ($request->route()->getName() ?? '') : '';
-        $requiresResources = in_array($currentRoute, $resourceIntensiveRoutes) || 
-                             $request->has('refresh_resources');
+        if ($user) {
+            SuspendExpiredDemoServers::dispatch($user->id);
+        }
 
-        // Only process resources for authenticated users on routes that need it
-        if ($user && $requiresResources) {
-            // Use a long cache time for resources - they rarely change dramatically
+        if ($user && $user->pterodactyl_id) {
+            // Check if we need to refresh the cache or get new data
             $cacheKey = 'user_resources_' . $user->id;
-            $cachedData = Cache::get($cacheKey);
+            $forceRefresh = $request->has('refresh_resources') || !Cache::has($cacheKey);
             
-            // Check if we need fresh data
-            $forceRefresh = $request->has('refresh_resources');
+            // Check if user has demo servers
+            $hasDemo = $this->userHasDemoServers($user->id);
             
-            if ($cachedData && !$forceRefresh) {
-                // Use cached data - fastest path
-                $totalResources = $cachedData['totalResources'];
-            } else {
-                // No cache or forced refresh - use what we have in the DB for now
-                if (!empty($user->resources)) {
-                    $totalResources = $user->resources;
-                }
+            try {
+                // Get Go service URL
+                $goServiceUrl = env('GO_SERVICE_URL', 'http://localhost:8081');
                 
-                // Queue background job to update resources without waiting for it
-                if ($user->pterodactyl_id) {
-                    // Add jitter to prevent all jobs running at once
-                    $jitter = rand(1, 20); 
-                    UpdateUserResources::dispatch($user->id)
-                        ->onQueue('low')
-                        ->delay(now()->addSeconds($jitter));
+                if ($forceRefresh) {
+                    // Use the Go service to refresh the data
+                    $client = new Client(['timeout' => 5.0]);
+                    
+                    // Add demo parameter if needed
+                    $endpoint = "/update-user/{$user->id}";
+                    if ($hasDemo) {
+                        $endpoint .= "?demo=true";
+                    }
+                    
+                    // Make the request to refresh data
+                    $response = $client->get($goServiceUrl . $endpoint);
+                    
+                    Log::info("Refreshed resources for user {$user->id} using Go service");
+                    
+                    // Get the data from the Go service
+                    $endpoint = "/get-resources/{$user->id}";
+                    $response = $client->get($goServiceUrl . $endpoint);
+                    
+                    if ($response->getStatusCode() === 200) {
+                        $data = json_decode($response->getBody(), true);
+                        
+                        if (isset($data['totalResources'])) {
+                            $totalResources = $data['totalResources'];
+                            
+                            // Cache the result for future requests
+                            Cache::put($cacheKey, [
+                                'totalResources' => $totalResources,
+                                'serverCount' => $totalResources['servers'] ?? 0
+                            ], 300);
+                        }
+                    }
+                } else {
+                    // Get cached resources if available
+                    $cachedData = Cache::get($cacheKey);
+                    
+                    if ($cachedData) {
+                        $totalResources = $cachedData['totalResources'];
+                        Log::info("Using cached resources for user {$user->id}");
+                    } else {
+                        // If no cache but we have resources in the user model
+                        $totalResources = $user->resources ?: $totalResources;
+                        
+                        // Store in cache for future requests
+                        Cache::put($cacheKey, [
+                            'totalResources' => $totalResources,
+                            'serverCount' => $totalResources['servers'] ?? 0
+                        ], 300);
+                        
+                        // Trigger background update for next time
+                        try {
+                            $client = new Client(['timeout' => 0.5]);
+                            $endpoint = "/update-user/{$user->id}";
+                            if ($hasDemo) {
+                                $endpoint .= "?demo=true";
+                            }
+                            $client->get($goServiceUrl . $endpoint);
+                        } catch (RequestException $e) {
+                            // Ignore errors for background requests
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                // If Go service fails, fall back to the original method
+                Log::error("Error using Go service: " . $e->getMessage() . ". Falling back to Laravel job.");
+                
+                if ($forceRefresh) {
+                    // Dispatch job to update resources in the background
+                    UpdateUserResources::dispatch($user->id);
+                    Log::info("Dispatched UpdateUserResources job for user {$user->id}");
+                    
+                    // If no cached data exists yet, use the resources from the user model
+                    if (!Cache::has($cacheKey) && !empty($user->resources)) {
+                        $totalResources = $user->resources;
+                    }
+                } else {
+                    // Get cached resources if available
+                    $cachedData = Cache::get($cacheKey);
+                    
+                    if ($cachedData) {
+                        $totalResources = $cachedData['totalResources'];
+                    } else {
+                        // If no cache but we have resources in the user model
+                        $totalResources = $user->resources ?: $totalResources;
+                        
+                        // Store in cache for future requests
+                        Cache::put($cacheKey, [
+                            'totalResources' => $totalResources,
+                            'serverCount' => $totalResources['servers'] ?? 0
+                        ], 300);
+                    }
                 }
             }
-            
-            // For suspension checks, use a separate weekly cache to avoid frequent checks
-            $suspensionCacheKey = 'suspension_check_' . $user->id;
-            if (!Cache::has($suspensionCacheKey)) {
-                SuspendExpiredDemoServers::dispatch($user->id)->onQueue('low');
-                // Set a cache so we don't run this too frequently - much longer time
-                Cache::put($suspensionCacheKey, true, 86400); // Check once per day
+        } else {
+            if ($user) {
+                Log::warning("User ID {$user->id} does not have a pterodactyl_id.");
+            } else {
+                Log::info("No authenticated user found.");
             }
         }
 
@@ -129,16 +209,6 @@ class HandleInertiaRequests extends Middleware
         // Calculate the time taken to process the request
         $endTime = microtime(true);
         $executionTime = round(($endTime - $this->startTime) * 1000, 2); // Convert to milliseconds
-
-        // Only include debug info in development environment
-        $debugInfo = [];
-        if (config('app.env') !== 'production') {
-            $debugInfo = [
-                'requestTime' => $executionTime . 'ms',
-                'path' => $request->path(),
-                'method' => $request->method(),
-            ];
-        }
 
         return array_merge(parent::share($request), [
             'auth' => [
@@ -156,6 +226,7 @@ class HandleInertiaRequests extends Middleware
                     'backups' => config('shop.max_backups', 5),
                 ],
             ],
+
             'flash' => [
                 'status' => fn () => $request->session()->get('status'),
                 'error' => fn () => $request->session()->get('error'),
@@ -167,13 +238,70 @@ class HandleInertiaRequests extends Middleware
                 'secerts' => fn () => $request->session()->get('secerts'),
                 'linkvertiseUrl' => fn () => $request->session()->get('linkvertiseUrl'),
             ],
+            
             'totalResources' => $totalResources,
             'linkvertiseEnabled' => config('linkvertise.enabled'),
             'linkvertiseId'      => config('linkvertise.id'),
             'pterodactyl_URL'    => env('PTERODACTYL_API_URL'),
             'vmsConfig'          => $vmsConfig,
-            'debug' => $debugInfo
+            'debug' => [
+                'requestTime' => $executionTime . 'ms',
+                'requestStarted' => date('Y-m-d H:i:s', (int)$this->startTime),
+                'requestEnded' => date('Y-m-d H:i:s', (int)$endTime),
+                'requestPath' => $request->path(),
+                'requestMethod' => $request->method(),
+                'serverLoad' => sys_getloadavg()[0],
+                'memory' => round(memory_get_usage() / 1024 / 1024, 2) . 'MB',
+                'cacheHit' => !($request->has('refresh_resources') || !Cache::has('user_resources_' . ($user ? $user->id : 0))),
+                'usingGoService' => true
+            ]
         ]);
+    }
+
+    /**
+     * Check if a user has demo servers.
+     *
+     * @param int $userId
+     * @return bool
+     */
+    protected function userHasDemoServers($userId)
+    {
+        // Try to get from cache first to avoid repeated checks
+        $cacheKey = 'user_has_demo_' . $userId;
+        
+        if (Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
+        
+        try {
+            // Get the user's servers
+            $servers = $this->pterodactylService->getUserServers($userId);
+            
+            // Check if any server name or description contains "demo"
+            $hasDemo = false;
+            
+            if (isset($servers['data']) && is_array($servers['data'])) {
+                foreach ($servers['data'] as $server) {
+                    if (isset($server['attributes'])) {
+                        $name = strtolower($server['attributes']['name'] ?? '');
+                        $description = strtolower($server['attributes']['description'] ?? '');
+                        
+                        if (strpos($name, 'demo') !== false || strpos($description, 'demo') !== false) {
+                            $hasDemo = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Cache the result for 1 hour
+            Cache::put($cacheKey, $hasDemo, 3600);
+            
+            return $hasDemo;
+        } catch (\Exception $e) {
+            Log::error("Error checking for demo servers: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -189,16 +317,15 @@ class HandleInertiaRequests extends Middleware
         
         $response = parent::handle($request, $next);
         
-        // Only log timing in development to reduce overhead
-        if (config('app.env') !== 'production') {
-            $endTime = microtime(true);
-            $executionTime = round(($endTime - $this->startTime) * 1000, 2);
-            
-            Log::debug("Request processed in {$executionTime}ms", [
-                'path' => $request->path(),
-                'method' => $request->method()
-            ]);
-        }
+        $endTime = microtime(true);
+        $executionTime = round(($endTime - $this->startTime) * 1000, 2);
+        
+        // Log the request timing
+        Log::debug("Request processed in {$executionTime}ms", [
+            'path' => $request->path(),
+            'method' => $request->method(),
+            'ip' => $request->ip()
+        ]);
         
         return $response;
     }
