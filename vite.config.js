@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import react from '@vitejs/plugin-react';
 import MillionLint from "@million/lint";
+import { splitVendorChunkPlugin } from 'vite'
 import million from 'million/compiler';
 
 export default defineConfig({
@@ -15,6 +16,7 @@ export default defineConfig({
             auto: true, // Enable automatic mode for component optimization
             mute: false, // Set to true to reduce logs
         }),
+        splitVendorChunkPlugin()
         react(),
         MillionLint.vite()
     ],
