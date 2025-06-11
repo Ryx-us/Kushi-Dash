@@ -138,21 +138,33 @@ const Products = ({ plansINTERSIA = [] }) => {
                             </div>
 
                             {plan?.resources && Object.keys(plan.resources).length > 0 && (
-                                <div>
-                                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Resources Included:</h3>
-                                    <ul className="space-y-2">
-                                        {Object.entries(plan.resources)
-                                            .filter(([_, value]) => value > 0)
-                                            .map(([key, value]) => (
-                                                <li key={key} className="flex items-center gap-2 text-sm">
-                                                    {getResourceIcon(key)}
-                                                    <span className="capitalize flex-1">{key}:</span>
-                                                    <span className="font-medium">{value}</span>
-                                                </li>
-                                            ))}
-                                    </ul>
-                                </div>
-                            )}
+  <div className="space-y-3">
+    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Resources Included</h3>
+    <div className="grid grid-cols-2 gap-3">
+      {Object.entries(plan.resources)
+        .filter(([_, value]) => value > 0)
+        .map(([key, value]) => {
+          // Format value based on resource type
+          const formattedValue = key.toLowerCase().includes('cpu') 
+            ? `${value}%` 
+            : value;
+            
+          return (
+            <div 
+              key={key} 
+              className="flex flex-col items-center p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg"
+            >
+              <div className="mb-1 p-2 rounded-full bg-primary/10">
+                {getResourceIcon(key)}
+              </div>
+              <span className="text-base font-medium mt-1">{formattedValue}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 capitalize mt-1">{key}</span>
+            </div>
+          );
+        })}
+    </div>
+  </div>
+)}
                         </CardContent>
 
                         <CardFooter className="pt-2">
