@@ -98,7 +98,7 @@ const Products = ({ plansINTERSIA = [] }) => {
                                 {plan.planType && (
                                     <Badge variant="outline" className="flex items-center gap-1">
                                         <Calendar className="h-3 w-3" />
-                                        {plan.planType}
+                                        {getPlanTypeLabel(plan.planType)}
                                     </Badge>
                                 )}
                             </div>
