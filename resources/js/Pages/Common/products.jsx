@@ -155,7 +155,7 @@ const Products = ({ plansINTERSIA = [] }) => {
                                                     const formattedValue = key.toLowerCase().includes('cpu') 
                                                         ? `${value}%` 
                                                         : key.toLowerCase().includes('ram') || key.toLowerCase().includes('memory') || key.toLowerCase().includes('disk') || key.toLowerCase().includes('storage')
-                                                            ? `${value} GB`
+                                                            ? `${value} MB`
                                                             : value;
                                                     
                                                     return (
