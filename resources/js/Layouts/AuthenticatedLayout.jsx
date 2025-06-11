@@ -219,7 +219,7 @@ function AppSidebar({ auth, vmsConfig, sidebartab }) {
                     "rounded-lg transition-colors",
                   )}
                 >
-                  <Link href={route("dashboard")}>
+                  <Link href={route("dashboard")} prefetch cacheFor="20s">
                     <Home className="h-5 w-5" />
                     <span className="font-medium">Dashboard</span>
                   </Link>
@@ -237,7 +237,7 @@ function AppSidebar({ auth, vmsConfig, sidebartab }) {
                     "rounded-lg transition-colors",
                   )}
                 >
-                  <Link href="/deploy">
+                  <Link href="/deploy" prefetch cacheFor="20s">
                     <LucideMonitorUp className="h-5 w-5" />
                     <span className="font-medium">Deploy</span>
                   </Link>
@@ -255,7 +255,7 @@ function AppSidebar({ auth, vmsConfig, sidebartab }) {
                     "rounded-lg transition-colors",
                   )}
                 >
-                  <Link href="/panel">
+                  <Link href="/panel " prefetch cacheFor="10s">
                     <LucideKeySquare className="h-5 w-5" />
                     <span className="font-medium">Control Panel</span>
                   </Link>
@@ -273,7 +273,7 @@ function AppSidebar({ auth, vmsConfig, sidebartab }) {
                     "rounded-lg transition-colors",
                   )}
                 >
-                  <Link href="/plans">
+                  <Link href="/plans" prefetch cacheFor="10s">
                     <LucideShoppingBag className="h-5 w-5" />
                     <span className="font-medium">Shop</span>
                   </Link>
@@ -291,7 +291,7 @@ function AppSidebar({ auth, vmsConfig, sidebartab }) {
                     "rounded-lg transition-colors",
                   )}
                 >
-                  <Link href="/shop">
+                  <Link href="/shop" prefetch cacheFor="10s">
                     <LucideHandCoins className="h-5 w-5" />
                     <span className="font-medium">Coin Shop</span>
                   </Link>
@@ -309,7 +309,7 @@ function AppSidebar({ auth, vmsConfig, sidebartab }) {
                     "rounded-lg transition-colors",
                   )}
                 >
-                  <Link href="/earn">
+                  <Link href="/earn" prefetch cacheFor="10s">
                     <BarChart3 className="h-5 w-5" />
                     <span className="font-medium">Earn Coins</span>
                   </Link>
@@ -327,7 +327,7 @@ function AppSidebar({ auth, vmsConfig, sidebartab }) {
                     "rounded-lg transition-colors",
                   )}
                 >
-                  <Link href="/profile">
+                  <Link href="/profile" prefetch cacheFor="20s">
                     {auth.user.rank === "premium" ? (
                       <Crown className="h-5 w-5 text-amber-500" />
                     ) : (

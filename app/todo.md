@@ -7,11 +7,14 @@ fix location editing
 fix plan editing
 
 
+sudo bash -c 'echo -e "opcache.enable=1\nopcache.jit_buffer_size=256M\nopcache.jit=1255" >> /etc/php/8.3/fpm/php.ini && systemctl restart php8.3-fpm'
 
 
 
 
 
+
+1
 
 
 
