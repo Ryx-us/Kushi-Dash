@@ -71,7 +71,7 @@ const Products = ({ plansINTERSIA = [] }) => {
             case 'annual':
                 return 'year';
             case 'onetime':
-                return 'one-time';
+                return 'Lifetime';
             default:
                 return planType || 'month';
         }
