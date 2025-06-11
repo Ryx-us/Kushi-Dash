@@ -138,38 +138,29 @@ const Products = ({ plansINTERSIA = [] }) => {
                             </div>
 
                             {plan?.resources && Object.keys(plan.resources).length > 0 && (
-  <div className="mt-2">
-    <div className="pt-4 pb-2 border-t border-gray-100 dark:border-gray-800">
-      <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wider uppercase mb-3">Features</h3>
-      
-      <div className="grid grid-cols-2 gap-3">
-        {Object.entries(plan.resources)
-          .filter(([_, value]) => value > 0)
-          .map(([key, value]) => {
-            // Format value based on resource type
-            const formattedValue = key.toLowerCase().includes('cpu') 
-              ? `${value}%` 
-              : key.toLowerCase().includes('ram') || key.toLowerCase().includes('memory') || key.toLowerCase().includes('disk') || key.toLowerCase().includes('storage')
-                ? `${value} MB`
-                : value;
-            
-            return (
-              <div key={key} className="flex flex-col rounded-lg p-3 bg-gray-50 dark:bg-gray-900/50 transition-colors hover:bg-gray-100 dark:hover:bg-gray-900">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-7 h-7 rounded-full bg-primary/5 flex items-center justify-center">
-                    {getResourceIcon(key)}
-                  </div>
-                  <span className="text-sm font-semibold ml-9 mt-0.5">{formattedValue}</span>
-                 
-                </div>
-                
-              </div>
-            );
-          })}
-      </div>
-    </div>
-  </div>
-)}
+                                <div className="rounded-lg border border-gray-100 dark:border-gray-800 overflow-hidden">
+                                    <div className="px-4 py-2 bg-gray-50 dark:bg-gray-900">
+                                      <h3 className="text-sm font-medium">Resources Included</h3>
+                                    </div>
+                                    <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                                      {Object.entries(plan.resources)
+                                        .filter(([_, value]) => value > 0)
+                                        .map(([key, value]) => (
+                                          <div key={key} className="px-4 py-3 flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary">
+                                                {getResourceIcon(key)}
+                                              </span>
+                                              <span className="text-sm capitalize">{key}</span>
+                                            </div>
+                                            <span className="text-sm font-semibold bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full">
+                                              {value}
+                                            </span>
+                                          </div>
+                                        ))}
+                                    </div>
+                                  </div>
+                            )}
                         </CardContent>
 
                         <CardFooter className="pt-2">
