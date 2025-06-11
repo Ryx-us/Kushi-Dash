@@ -1,22 +1,29 @@
-// resources/js/Pages/User/Products.jsx
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 import { Button } from "@/components/ui/button";
-import { ShoppingCart } from "lucide-react";
+import { 
+  ShoppingCart, 
+  CheckCircle2, 
+  Calendar, 
+  Cpu, 
+  HardDrive, 
+  Database,
+  Wifi,
+  MemoryStick
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import EmptyState from './NotFound';
 
 const Products = ({ plansINTERSIA = [] }) => {
     const [plans, setPlans] = useState([]);
-
-    //console.log ('Raw plans data:', plans);
     
     useEffect(() => {
         const fetchPlans = async () => {
             try {
                 const response = await fetch('/client/api/plans');
                 const data = await response.json();
-                setPlans(data.plans || []); // Ensure data is an array
+                setPlans(data.plans || []);
             } catch (error) {
                 console.error('Error fetching plans:', error);
             }
@@ -33,77 +40,127 @@ const Products = ({ plansINTERSIA = [] }) => {
         );
     }
 
+    // Helper function to get appropriate icon for resource type
+    const getResourceIcon = (resourceType) => {
+        switch (resourceType.toLowerCase()) {
+            case 'cpu':
+            case 'cores':
+                return <Cpu className="h-4 w-4 text-gray-500" />;
+            case 'ram':
+            case 'memory':
+                return <MemoryStick className="h-4 w-4 text-gray-500" />;
+            case 'disk':
+            case 'storage':
+                return <HardDrive className="h-4 w-4 text-gray-500" />;
+            case 'database':
+            case 'databases':
+                return <Database className="h-4 w-4 text-gray-500" />;
+            case 'bandwidth':
+            case 'network':
+                return <Wifi className="h-4 w-4 text-gray-500" />;
+            default:
+                return <CheckCircle2 className="h-4 w-4 text-gray-500" />;
+        }
+    };
+
+    // Helper function to format plan type
+    const getPlanTypeLabel = (planType) => {
+        switch (planType) {
+            case 'monthly':
+                return 'month';
+            case 'annual':
+                return 'year';
+            case 'onetime':
+                return 'one-time';
+            default:
+                return planType || 'month';
+        }
+    };
+
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-4">
             {plans.map((plan) => (
                 <motion.div
                     key={plan.id}
                     whileHover={{ scale: 1.02 }}
                     className="h-full"
                 >
-                    <Card className="h-full flex flex-col">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-3">
-                                {plan?.icon && (
-                                    <img src={plan.icon} alt="" className="w-8 h-8 rounded" />
+                    <Card className="h-full flex flex-col border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow">
+                        <CardHeader className="pb-2">
+                            <div className="flex justify-between items-start">
+                                <CardTitle className="flex items-center gap-3">
+                                    {plan?.icon && (
+                                        <img src={plan.icon} alt="" className="w-8 h-8 rounded-md" />
+                                    )}
+                                    <span className="truncate">{plan.name}</span>
+                                </CardTitle>
+                                {plan.planType && (
+                                    <Badge variant="outline" className="flex items-center gap-1">
+                                        <Calendar className="h-3 w-3" />
+                                        {plan.planType}
+                                    </Badge>
                                 )}
-                                <span className="truncate">{plan.name}</span>
-                            </CardTitle>
+                            </div>
                         </CardHeader>
 
-                        <CardContent className="flex-grow">
+                        <CardContent className="flex-grow pt-2 space-y-4">
                             {plan?.image && (
                                 <div className="mb-4">
                                     <img
                                         src={plan.image}
                                         alt={plan.name}
-                                        className="w-full h-32 object-cover rounded-md"
+                                        className="w-full h-36 object-cover rounded-md"
                                     />
                                 </div>
                             )}
 
-                            <p className="text-3xl font-bold text-center mb-4">
-                                ${plan.price}
-                                <span className="text-sm text-gray-500 ml-1">
-                                    /{plan.planType || 'month'}
-                                </span>
-                            </p>
+                            {plan?.description && (
+                                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                                    {plan.description}
+                                </p>
+                            )}
 
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <h3 className="font-semibold">Resources Included:</h3>
-                                    <ul className="space-y-2">
-                                        {plan?.resources && Object.entries(plan.resources).map(([key, value]) => (
-                                            <li key={key} className="flex items-center justify-between text-sm">
-                                                <span className="capitalize">{key}:</span>
-                                                <span className="font-medium">{value}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-
-                                {plan?.description && (
-                                    <p className="text-sm text-gray-600">
-                                        {plan.description}
-                                    </p>
-                                )}
-
+                            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                                <p className="text-2xl font-bold text-center">
+                                    ${plan.price}
+                                    <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">
+                                        /{getPlanTypeLabel(plan.planType)}
+                                    </span>
+                                </p>
+                                
                                 {plan?.discount && plan.discount > 0 && (
-                                    <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded-lg">
-                                        <span className="text-green-600 dark:text-green-400 font-medium">
-                                            Save {plan.discount}% on this plan
-                                        </span>
+                                    <div className="text-center mt-1">
+                                        <Badge variant="outline" className="bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800">
+                                            Save {plan.discount}%
+                                        </Badge>
                                     </div>
                                 )}
                             </div>
+
+                            {plan?.resources && Object.keys(plan.resources).length > 0 && (
+                                <div>
+                                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Resources Included:</h3>
+                                    <ul className="space-y-2">
+                                        {Object.entries(plan.resources)
+                                            .filter(([_, value]) => value > 0)
+                                            .map(([key, value]) => (
+                                                <li key={key} className="flex items-center gap-2 text-sm">
+                                                    {getResourceIcon(key)}
+                                                    <span className="capitalize flex-1">{key}:</span>
+                                                    <span className="font-medium">{value}</span>
+                                                </li>
+                                            ))}
+                                    </ul>
+                                </div>
+                            )}
                         </CardContent>
 
-                        <CardFooter className="mt-auto pt-4">
+                        <CardFooter className="pt-2">
                             <Button
-                                className="w-full bg-black hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200"
+                                className="w-full gap-2"
                                 onClick={() => window.location.href = `/user/plans/purchase/${plan.id}`}
                             >
-                                <ShoppingCart className="mr-2 h-4 w-4" />
+                                <ShoppingCart className="h-4 w-4" />
                                 Select Plan
                             </Button>
                         </CardFooter>
