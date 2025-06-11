@@ -10,26 +10,39 @@ class Plan extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', 
+        'name',
+        'description', 
         'price',
+        'features',  // Keep this since it exists in DB
         'icon',
         'image',
-        'description',
         'resources',
         'discount',
         'visibility',
         'redirect',
-        'perCustomer',
+        'perCustomer', // Keep this since it exists in DB
         'planType',
-        'perPerson',
+        'perPerson', // Keep this since it exists in DB
         'stock',
-        'kushiConfig',
+        'kushiConfig', // Keep this since it exists in DB
+        'maxUsers', // Adding this new column
+        'duration', // Adding this new column
     ];
 
     protected $casts = [
-        'resources' => 'array',       // Keep this as 'array' if it's a JSON object/array
-        'redirect' => 'string',       // Assuming 'redirect' is a URL or string path
-        'perCustomer' => 'integer',   // Cast as 'integer' if it's a numeric field
-        'kushiConfig' => 'array',     // Keep this as 'array' if it's a JSON object/array
+        'resources' => 'array',
+        'visibility' => 'boolean',
+        'price' => 'decimal:2',
+        'discount' => 'decimal:2',
+        'features' => 'array',
+        'kushiConfig' => 'array',
     ];
+
+    /**
+     * Get subscriptions for this plan.
+     */
+    public function subscriptions()
+    {
+        return $this->hasMany(UserSubscription::class);
+    }
 }

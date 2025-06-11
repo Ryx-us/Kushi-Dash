@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Plan;
+use App\Models\UserSubscription;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
@@ -10,6 +12,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Jobs\HandlePlanExpiration;
 
 class UserController extends Controller
 {
@@ -186,7 +189,21 @@ class UserController extends Controller
     try {
         $user = User::findOrFail($id);
         
-        return response()->json($user);
+        // Get active subscriptions
+        $subscriptions = UserSubscription::where('user_id', $id)
+            ->where('status', UserSubscription::STATUS_ACTIVE)
+            ->with('plan')
+            ->get()
+            ->map(function($subscription) {
+                $subscription->days_remaining = $subscription->getDaysRemainingAttribute();
+                return $subscription;
+            });
+        
+        // Append subscriptions to user data
+        $userData = $user->toArray();
+        $userData['subscriptions'] = $subscriptions;
+        
+        return response()->json($userData);
        
     } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
         return response()->json([
@@ -201,7 +218,7 @@ class UserController extends Controller
         
         return response()->json([
             'success' => false,
-            'message' => 'SOmething bad'
+            'message' => 'Something went wrong'
         ], 503);
     }
 }
@@ -354,5 +371,158 @@ class UserController extends Controller
     ]);
 
     return back()->with('status', 'success');
+}
+
+/**
+ * Admin assigns plan to user
+ */
+public function grantPlan(Request $request, $userId)
+{
+    $request->validate([
+        'planId' => 'required|exists:plans,id',
+        'planType' => 'required|in:monthly,annual,onetime',
+    ]);
+
+    try {
+        $user = User::findOrFail($userId);
+        $plan = Plan::findOrFail($request->planId);
+
+        // Calculate expiration date based on plan type
+        $expiresAt = null;
+        if ($request->planType === 'monthly') {
+            $expiresAt = now()->addMonth();
+        } elseif ($request->planType === 'annual') {
+            $expiresAt = now()->addYear();
+        }
+
+        // Create subscription record
+        $subscription = UserSubscription::create([
+            'user_id' => $userId,
+            'plan_id' => $request->planId,
+            'status' => UserSubscription::STATUS_ACTIVE,
+            'expires_at' => $expiresAt,
+            'granted_by' => auth()->id(),
+        ]);
+
+        // Add plan resources to user
+        $this->addPlanToUser($user, $plan);
+
+        // Schedule expiration job if the plan expires
+        if ($expiresAt) {
+            HandlePlanExpiration::dispatch($subscription)->delay($expiresAt);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Plan granted successfully',
+            'subscription' => $subscription
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Failed to grant plan', [
+            'user_id' => $userId,
+            'plan_id' => $request->planId,
+            'error' => $e->getMessage()
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to grant plan: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Add plan resources to user
+ */
+private function addPlanToUser($user, $plan)
+{
+    // Add to user's limits
+    $currentLimits = $user->limits ?? [];
+    $planResources = $plan->resources ?? [];
+
+    foreach ($planResources as $resourceType => $amount) {
+        $currentLimits[$resourceType] = ($currentLimits[$resourceType] ?? 0) + $amount;
+    }
+
+    // Add plan to purchases_plans
+    $purchasesPlans = $user->purchases_plans ?? [];
+    if (!in_array($plan->id, $purchasesPlans)) {
+        $purchasesPlans[] = $plan->id;
+    }
+
+    $user->update([
+        'limits' => $currentLimits,
+        'purchases_plans' => $purchasesPlans,
+        'rank' => 'premium' // Update rank if not already premium
+    ]);
+}
+
+/**
+ * Get user subscriptions
+ */
+public function getSubscriptions($userId)
+{
+    try {
+        $user = User::findOrFail($userId);
+        $subscriptions = UserSubscription::where('user_id', $userId)
+            ->where('status', UserSubscription::STATUS_ACTIVE)
+            ->with('plan')
+            ->get()
+            ->map(function($subscription) {
+                // Add days_remaining directly to avoid access issues with appended attributes
+                $subscription->days_remaining = $subscription->getDaysRemainingAttribute();
+                return $subscription;
+            });
+
+        return response()->json([
+            'success' => true,
+            'subscriptions' => $subscriptions
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Failed to get user subscriptions', [
+            'user_id' => $userId,
+            'error' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to get user subscriptions: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Cancel a subscription
+ */
+
+public function cancelSubscription($subscriptionId)
+{
+    try {
+        $subscription = UserSubscription::findOrFail($subscriptionId);
+        
+        // Mark as cancelled
+        $subscription->update([
+            'status' => UserSubscription::STATUS_EXPIRED // Using EXPIRED for consistency
+        ]);
+        
+        // Dispatch job to handle resource removal
+        HandlePlanExpiration::dispatch($subscription);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Subscription cancelled successfully'
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Failed to cancel subscription', [
+            'subscription_id' => $subscriptionId,
+            'error' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to cancel subscription: ' . $e->getMessage()
+        ], 500);
+    }
 }
 }

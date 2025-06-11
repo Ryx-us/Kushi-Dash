@@ -41,6 +41,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->booted(function () {
             $schedule = $this->app->make(Schedule::class);
             
+            $schedule->command('plans:check-expired')->daily();
+            
             // Update user resources every 15 minutes
             $schedule->call(function () {
                 User::whereNotNull('pterodactyl_id')->chunk(20, function ($users) {

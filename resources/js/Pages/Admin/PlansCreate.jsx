@@ -7,16 +7,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Loader2, CheckCircle2, Info } from "lucide-react";
 
 const PlanForm = () => {
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         description: '',
-        price: '',
+        price: 0,
         icon: '',
         image: '',
-        Newresources: {
+        resource_plans: { // Changed from 'resources' to 'resource_plans'
             cpu: 0,
             memory: 0,
             disk: 0,
@@ -25,14 +27,13 @@ const PlanForm = () => {
             backups: 0,
             servers: 0
         },
-        discount: '',
-        visibility: false,
+        discount: 0,
+        visibility: true,
         redirect: '',
-        perCustomer: '',
         planType: 'monthly',
-        perPerson: 1,
+        maxUsers: 1,
         stock: 0,
-        kushiConfig: ''
+        duration: null
     });
 
     const { flash } = usePage().props;
@@ -40,50 +41,70 @@ const PlanForm = () => {
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
     useEffect(() => {
-        if (flash.status) {
-            setFlashMessage({ message: flash.res, type: flash.status });
-            if (flash.status === 'success') {
-                setShowSuccessDialog(true);
-            } else {
-                const timer = setTimeout(() => setFlashMessage(null), 5000);
-                return () => clearTimeout(timer);
-            }
+        if (flash.success) {
+            setFlashMessage({ message: flash.success, type: 'success' });
+            setShowSuccessDialog(true);
+        } else if (flash.error) {
+            setFlashMessage({ message: flash.error, type: 'error' });
+            const timer = setTimeout(() => setFlashMessage(null), 5000);
+            return () => clearTimeout(timer);
         }
     }, [flash]);
+
+    // Auto-set duration based on plan type
+    useEffect(() => {
+        let newDuration = null;
+        switch (data.planType) {
+            case 'monthly':
+                newDuration = 30;
+                break;
+            case 'annual':
+                newDuration = 365;
+                break;
+            case 'onetime':
+                newDuration = null;
+                break;
+        }
+        if (newDuration !== data.duration) {
+            setData('duration', newDuration);
+        }
+    }, [data.planType]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        const requiredData = {
-            ...data,
-            additional_fields: null // Set other values as null as required
-        };
-        
         try {
-            await post('/admin/plans/store', requiredData);
-            //console.log ('Data:', requiredData);
-            reset();
+            await post('/admin/plans/store');
+            // Success will be handled by flash message
         } catch (error) {
-            console.error('An error occurred while submitting the form.');
+            console.error('An error occurred while submitting the form:', error);
         }
     };
 
     const handleSuccessClose = () => {
         setShowSuccessDialog(false);
+        setFlashMessage(null);
         reset();
+    };
+
+    const updateResource = (resource, value) => {
+        setData('resource_plans', { // Changed from 'resources' to 'resource_plans'
+            ...data.resource_plans,
+            [resource]: parseInt(value) || 0
+        });
     };
 
     return (
         <>
-            <Card className="w-full max-w-2xl mx-auto">
+            <Card className="w-full max-w-4xl mx-auto">
                 <CardHeader>
                     <CardTitle>Create New Plan</CardTitle>
                     <CardDescription>
-                        Define a new plan with available billing cycles, visibility, and customer limits.
+                        Define a new plan with billing cycle, resources, and visibility settings.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {flashMessage && flashMessage.type !== 'success' && (
+                    {flashMessage && flashMessage.type === 'error' && (
                         <Alert variant="destructive" className="mb-6">
                             <AlertDescription>
                                 {flashMessage.message}
@@ -92,237 +113,271 @@ const PlanForm = () => {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Name</Label>
-                            <Input
-                                id="name"
-                                type="text"
-                                value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
-                                placeholder="Enter plan name"
-                                className={errors.name ? 'border-red-500' : ''}
-                            />
-                            {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
+                        {/* Basic Information */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Plan Name *</Label>
+                                <Input
+                                    id="name"
+                                    type="text"
+                                    value={data.name}
+                                    onChange={(e) => setData('name', e.target.value)}
+                                    placeholder="e.g., Pro Plan, Starter, Enterprise"
+                                    className={errors.name ? 'border-red-500' : ''}
+                                />
+                                {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="price">Price (USD) *</Label>
+                                <Input
+                                    id="price"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={data.price}
+                                    onChange={(e) => setData('price', parseFloat(e.target.value) || 0)}
+                                    placeholder="0.00"
+                                    className={errors.price ? 'border-red-500' : ''}
+                                />
+                                {errors.price && <p className="text-sm text-red-500">{errors.price}</p>}
+                            </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="description">Description</Label>
+                            <Label htmlFor="description">Description *</Label>
                             <Textarea
                                 id="description"
                                 value={data.description}
                                 onChange={(e) => setData('description', e.target.value)}
-                                placeholder="Enter plan description"
+                                placeholder="Describe what this plan includes..."
                                 className={errors.description ? 'border-red-500' : ''}
+                                rows={3}
                             />
                             {errors.description && <p className="text-sm text-red-500">{errors.description}</p>}
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="price">Price (USD)</Label>
-                            <Input
-                                id="price"
-                                type="text"
-                                value={data.price}
-                                onChange={(e) => setData('price', e.target.value)}
-                                placeholder="Enter price"
-                                className={errors.price ? 'border-red-500' : ''}
-                            />
-                            {errors.price && <p className="text-sm text-red-500">{errors.price}</p>}
+                        {/* Plan Type and Duration */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="planType">Plan Type *</Label>
+                                <Select value={data.planType} onValueChange={(value) => setData('planType', value)}>
+                                    <SelectTrigger className={errors.planType ? 'border-red-500' : ''}>
+                                        <SelectValue placeholder="Select plan type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="monthly">Monthly Subscription</SelectItem>
+                                        <SelectItem value="annual">Annual Subscription</SelectItem>
+                                        <SelectItem value="onetime">One-time Purchase</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {errors.planType && <p className="text-sm text-red-500">{errors.planType}</p>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="duration">Duration (Days)</Label>
+                                <Input
+                                    id="duration"
+                                    type="number"
+                                    value={data.duration || ''}
+                                    onChange={(e) => setData('duration', parseInt(e.target.value) || null)}
+                                    placeholder="Auto-set based on type"
+                                    disabled={data.planType !== 'onetime'}
+                                />
+                                <p className="text-xs text-gray-500">
+                                    {data.planType === 'monthly' && 'Auto-set to 30 days'}
+                                    {data.planType === 'annual' && 'Auto-set to 365 days'}
+                                    {data.planType === 'onetime' && 'Leave empty for permanent'}
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="maxUsers">Max Users</Label>
+                                <Input
+                                    id="maxUsers"
+                                    type="number"
+                                    min="1"
+                                    value={data.maxUsers}
+                                    onChange={(e) => setData('maxUsers', parseInt(e.target.value) || 1)}
+                                    placeholder="1"
+                                />
+                            </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="icon">Icon</Label>
-                            <Input
-                                id="icon"
-                                type="text"
-                                value={data.icon}
-                                onChange={(e) => setData('icon', e.target.value)}
-                                placeholder="Enter icon URL"
-                                className={errors.icon ? 'border-red-500' : ''}
-                            />
-                            {errors.icon && <p className="text-sm text-red-500">{errors.icon}</p>}
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="image">Image</Label>
-                            <Input
-                                id="image"
-                                type="text"
-                                value={data.image}
-                                onChange={(e) => setData('image', e.target.value)}
-                                placeholder="Enter image URL"
-                                className={errors.image ? 'border-red-500' : ''}
-                            />
-                            {errors.image && <p className="text-sm text-red-500">{errors.image}</p>}
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="resources">Resources</Label>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <Label htmlFor="cpu">CPU</Label>
+                        {/* Resources Section - Now using resource_plans */}
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2">
+                                <Label className="text-lg font-semibold">Plan Resources</Label>
+                                <Info className="h-4 w-4 text-gray-500" />
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="cpu">CPU (%)</Label>
                                     <Input
                                         id="cpu"
                                         type="number"
-                                        value={data.Newresources.cpu}
-                                        onChange={(e) => setData('Newresources', { ...data.Newresources, cpu: e.target.value })}
+                                        min="0"
+                                        value={data.resource_plans.cpu}
+                                        onChange={(e) => updateResource('cpu', e.target.value)}
+                                        placeholder="0"
                                     />
                                 </div>
-                                <div>
-                                    <Label htmlFor="memory">Memory</Label>
+                                <div className="space-y-2">
+                                    <Label htmlFor="memory">Memory (MB)</Label>
                                     <Input
                                         id="memory"
                                         type="number"
-                                        value={data.Newresources.memory}
-                                        onChange={(e) => setData('Newresources', { ...data.Newresources, memory: e.target.value })}
+                                        min="0"
+                                        value={data.resource_plans.memory}
+                                        onChange={(e) => updateResource('memory', e.target.value)}
+                                        placeholder="0"
                                     />
                                 </div>
-                                <div>
-                                    <Label htmlFor="disk">Disk</Label>
+                                <div className="space-y-2">
+                                    <Label htmlFor="disk">Disk (MB)</Label>
                                     <Input
                                         id="disk"
                                         type="number"
-                                        value={data.Newresources.disk}
-                                        onChange={(e) => setData('Newresources', { ...data.Newresources, disk: e.target.value })}
+                                        min="0"
+                                        value={data.resource_plans.disk}
+                                        onChange={(e) => updateResource('disk', e.target.value)}
+                                        placeholder="0"
                                     />
                                 </div>
-                                <div>
+                                <div className="space-y-2">
                                     <Label htmlFor="databases">Databases</Label>
                                     <Input
                                         id="databases"
                                         type="number"
-                                        value={data.Newresources.databases}
-                                        onChange={(e) => setData('Newresources', { ...data.Newresources, databases: e.target.value })}
+                                        min="0"
+                                        value={data.resource_plans.databases}
+                                        onChange={(e) => updateResource('databases', e.target.value)}
+                                        placeholder="0"
                                     />
                                 </div>
-                                <div>
+                                <div className="space-y-2">
                                     <Label htmlFor="allocations">Allocations</Label>
                                     <Input
                                         id="allocations"
                                         type="number"
-                                        value={data.Newresources.allocations}
-                                        onChange={(e) => setData('Newresources', { ...data.Newresources, allocations: e.target.value })}
+                                        min="0"
+                                        value={data.resource_plans.allocations}
+                                        onChange={(e) => updateResource('allocations', e.target.value)}
+                                        placeholder="0"
                                     />
                                 </div>
-                                <div>
+                                <div className="space-y-2">
                                     <Label htmlFor="backups">Backups</Label>
                                     <Input
                                         id="backups"
                                         type="number"
-                                        value={data.Newresources.backups}
-                                        onChange={(e) => setData('Newresources', { ...data.Newresources, backups: e.target.value })}
+                                        min="0"
+                                        value={data.resource_plans.backups}
+                                        onChange={(e) => updateResource('backups', e.target.value)}
+                                        placeholder="0"
                                     />
                                 </div>
-                                <div>
-                                    <Label htmlFor="servers">Servers</Label>
+                                <div className="space-y-2">
+                                    <Label htmlFor="servers">Server Slots</Label>
                                     <Input
                                         id="servers"
                                         type="number"
-                                        value={data.Newresources.servers}
-                                        onChange={(e) => setData('Newresources', { ...data.Newresources, servers: e.target.value })}
+                                        min="0"
+                                        value={data.resource_plans.servers}
+                                        onChange={(e) => updateResource('servers', e.target.value)}
+                                        placeholder="0"
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="discount">Discount</Label>
-                            <Input
-                                id="discount"
-                                type="text"
-                                value={data.discount}
-                                onChange={(e) => setData('discount', e.target.value)}
-                                placeholder="Enter discount"
-                                className={errors.discount ? 'border-red-500' : ''}
-                            />
-                            {errors.discount && <p className="text-sm text-red-500">{errors.discount}</p>}
+                        {/* Additional Settings */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="discount">Discount (%)</Label>
+                                <Input
+                                    id="discount"
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    step="0.01"
+                                    value={data.discount}
+                                    onChange={(e) => setData('discount', parseFloat(e.target.value) || 0)}
+                                    placeholder="0"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="stock">Stock (0 = unlimited)</Label>
+                                <Input
+                                    id="stock"
+                                    type="number"
+                                    min="0"
+                                    value={data.stock}
+                                    onChange={(e) => setData('stock', parseInt(e.target.value) || 0)}
+                                    placeholder="0"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="icon">Icon URL</Label>
+                                <Input
+                                    id="icon"
+                                    type="url"
+                                    value={data.icon}
+                                    onChange={(e) => setData('icon', e.target.value)}
+                                    placeholder="https://example.com/icon.png"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="image">Image URL</Label>
+                                <Input
+                                    id="image"
+                                    type="url"
+                                    value={data.image}
+                                    onChange={(e) => setData('image', e.target.value)}
+                                    placeholder="https://example.com/image.png"
+                                />
+                            </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="visibility">Visibility</Label>
-                            <input
-                                type="checkbox"
-                                id="visibility"
-                                checked={data.visibility}
-                                onChange={(e) => setData('visibility', e.target.checked)}
-                                className='k ml-2 rounded-full mb-10'
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="redirect">Redirect</Label>
+                            <Label htmlFor="redirect">External Redirect URL</Label>
                             <Input
                                 id="redirect"
-                                type="text"
+                                type="url"
                                 value={data.redirect}
                                 onChange={(e) => setData('redirect', e.target.value)}
-                                placeholder="Enter redirect URL"
-                                className={errors.redirect ? 'border-red-500' : ''}
+                                placeholder="https://external-payment-processor.com/checkout"
                             />
-                            {errors.redirect && <p className="text-sm text-red-500">{errors.redirect}</p>}
+                            <p className="text-xs text-gray-500">
+                                If provided, users will be redirected to this URL instead of processing internally
+                            </p>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="perCustomer">Per Customer</Label>
-                            <Input
-                                id="perCustomer"
-                                type="text"
-                                value={data.perCustomer}
-                                onChange={(e) => setData('perCustomer', e.target.value)}
-                                placeholder="Enter per customer details"
-                                className={errors.perCustomer ? 'border-red-500' : ''}
-                            />
-                            {errors.perCustomer && <p className="text-sm text-red-500">{errors.perCustomer}</p>}
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="planType">Plan Type</Label>
-                            <select
-                                id="planType"
-                                value={data.planType}
-                                onChange={(e) => setData('planType', e.target.value)}
-                                className='text-black ml-2 rounded-full'
-                            >
-                                <option value="monthly" className="text-black dark:text-black">Monthly</option>
-                                <option value="lifetime">Lifetime</option>
-                            </select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="perPerson">Per Person</Label>
-                            <Input
-                                id="perPerson"
-                                type="number"
-                                value={data.perPerson}
-                                onChange={(e) => setData('perPerson', e.target.value)}
+                        {/* Visibility Toggle */}
+                        <div className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="visibility" className="text-base">Plan Visibility</Label>
+                                <p className="text-sm text-gray-500">
+                                    When enabled, this plan will be visible to users
+                                </p>
+                            </div>
+                            <Switch
+                                id="visibility"
+                                checked={data.visibility}
+                                onCheckedChange={(checked) => setData('visibility', checked)}
                             />
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="stock">Stock</Label>
-                            <Input
-                                id="stock"
-                                type="number"
-                                value={data.stock}
-                                onChange={(e) => setData('stock', e.target.value)}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="kushiConfig">Kushi Config</Label>
-                            <Textarea
-                                id="kushiConfig"
-                                value={data.kushiConfig}
-                                onChange={(e) => setData('kushiConfig', e.target.value)}
-                                placeholder="Enter kushi config"
-                            />
-                        </div>
-
-                        <Button type="submit" className="w-full" disabled={processing}>
+                        <Button type="submit" className="w-full" size="lg" disabled={processing}>
                             {processing ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Creating...
+                                    Creating Plan...
                                 </>
                             ) : (
                                 'Create Plan'
@@ -337,15 +392,15 @@ const PlanForm = () => {
                     <AlertDialogHeader>
                         <AlertDialogTitle className="flex items-center gap-2">
                             <CheckCircle2 className="h-6 w-6 text-green-500" />
-                            Success!
+                            Plan Created Successfully!
                         </AlertDialogTitle>
                         <AlertDialogDescription className="text-base">
-                            {flashMessage?.message || 'Plan configuration has been successfully saved!'}
+                            {flashMessage?.message || 'Your plan has been created and is now available.'}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogAction onClick={handleSuccessClose}>
-                            Continue
+                            Create Another Plan
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

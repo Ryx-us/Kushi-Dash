@@ -24,6 +24,17 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+
+/**
+ * Admin Api routes that are not public later authenticate
+ * @see PterodactylApi.php
+ */
+Route::post('/admin/api/users/{userId}/grant-plan', [UserController::class, 'grantPlan']);
+Route::get('/admin/api/users/{userId}/subscriptions', [UserController::class, 'getSubscriptions']);
+   
+Route::post('/admin/api/subscriptions/{subscriptionId}/cancel', [UserController::class, 'cancelSubscription']);
+    
+
 /**
  * Main landing page route
  */
@@ -161,6 +172,7 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::put('/admin/api/users/{id}/update', [UserController::class, 'update']);
     Route::delete('/admin/users/{id}', [UserController::class, 'destroy'])->name('admin.users.destroy');
     
+    
     // Egg management
     Route::get('/admin/eggs/new', [PterodactylEggController::class, 'new'])->name('admin.eggs.new');
     Route::get('/admin/eggs/create', [PterodactylEggController::class, 'create'])->name('admin.eggs.create');
@@ -187,7 +199,7 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::get('/admin/plans', [PlanController::class, 'index'])->name('plans.index');
     Route::get('/admin/plans/new', [PlanController::class, 'create'])->name('plans.create');
     Route::get('/admin/plans/create', [PlanController::class, 'create'])->name('plans.create');
-    Route::get('/admin/plans/{plan}/edit', [PlanController::class, 'edit'])->name('plans.edit');
+    Route::get('/admin/plans/edit/{plan}', [PlanController::class, 'edit'])->name('plans.edit');
     Route::get('/admin/api/plans', [PlanController::class, 'apiIndex'])->name('plans.api.Index');
     Route::post('/admin/plans/store', [PlanController::class, 'store'])->name('plans.store');
     Route::put('/admin/plans/{plan}', [PlanController::class, 'update'])->name('plans.update');
