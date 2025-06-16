@@ -21,7 +21,7 @@ const Products = ({ plansINTERSIA = [] }) => {
     useEffect(() => {
         const fetchPlans = async () => {
             try {
-                const response = await fetch('/client/api/plans');
+                const response = await fetch('/api/clientplans');
                 const data = await response.json();
                 setPlans(data.plans || []);
             } catch (error) {

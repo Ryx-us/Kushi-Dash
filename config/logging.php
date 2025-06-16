@@ -20,6 +20,13 @@ return [
 
     'default' => env('LOG_CHANNEL', 'stack'),
 
+    'api' => [
+        'driver' => 'daily',
+        'path' => storage_path('logs/api.log'),
+        'level' => env('LOG_LEVEL', 'debug'),
+        'days' => 14,
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Deprecations Log Channel

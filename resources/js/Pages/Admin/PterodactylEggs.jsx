@@ -44,7 +44,7 @@ const EggForm = ({ egg = {} }) => {
     useEffect(() => {
         const fetchPlans = async () => {
             try {
-                const response = await fetch('/client/api/plans');
+                const response = await fetch('/api/clientplans');
                 const plansData = await response.json();
                 //console.log (plansData.plans)
                 setPlans(plansData.plans);

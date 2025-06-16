@@ -20,13 +20,8 @@ export default function AdminEggsEdit() {
         >
             <Head title="Admin Users"/>
 
-            <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-black">
-                <div className="text-gray-900 dark:text-gray-100">
-                    <h3 className="text-lg font-medium">All Users found</h3>
-                </div>
-            </div>
 
-            <div className="mt-6">
+            <div className="mt-1">
                 <UsersView/>
             </div>
 

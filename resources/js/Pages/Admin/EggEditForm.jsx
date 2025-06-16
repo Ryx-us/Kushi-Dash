@@ -29,7 +29,7 @@ const EggEditForm = ({ id }) => {
         if (id && initialLoad) {
             const fetchEgg = async () => {
                 try {
-                    const response = await fetch(`/client/api/egg/${id}`);
+                    const response = await fetch(`/api/clientegg/${id}`);
                     const data = await response.json();
                     setData({
                         name: data.name || '',

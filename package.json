@@ -3,7 +3,7 @@
     "type": "module",
     "scripts": {
         "dev": "concurrently \"npm run dev:laravel\" \"npm run dev:react\"",
-        "dev:laravel": "php artisan serve",
+        "dev:laravel": "php artisan octane:start",
         "dev:react": "vite",
         "build": "vite build",
         "production": "npm run build && ./serve.production.sh",

@@ -59,6 +59,105 @@
             @endif
         </script>
 
+        <!-- API Helpers Script - Make CSRF token and API utilities available globally -->
+        <script>
+            // Initialize auth.api namespace
+            window.auth = window.auth || {};
+            // Api Data is sent to the frontend via a blade variable
+            window.auth.api = {
+                // CSRF token from meta tag
+                csrfToken: "{{ csrf_token() }}",
+                
+                // Base URL for API requests
+                baseUrl: "{{ url('/api') }}",
+                
+                // Headers to use for API requests
+                getHeaders: function(includeJson = true) {
+                    const headers = {
+                        'X-CSRF-TOKEN': this.csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    };
+                    
+                    if (includeJson) {
+                        headers['Content-Type'] = 'application/json';
+                        headers['Accept'] = 'application/json';
+                    }
+                    
+                    return headers;
+                },
+                
+                // Helper for making fetch requests to the API
+                fetch: async function(endpoint, options = {}) {
+                    const url = endpoint.startsWith('/') 
+                        ? `${this.baseUrl}${endpoint}`
+                        : `${this.baseUrl}/${endpoint}`;
+                        
+                    const defaultOptions = {
+                        headers: this.getHeaders(),
+                        credentials: 'same-origin'
+                    };
+                    
+                    const fetchOptions = { ...defaultOptions, ...options };
+                    
+                    if (fetchOptions.body && typeof fetchOptions.body === 'object' && !(fetchOptions.body instanceof FormData)) {
+                        fetchOptions.body = JSON.stringify(fetchOptions.body);
+                    }
+                    
+                    try {
+                        const response = await fetch(url, fetchOptions);
+                        const data = await response.json();
+                        
+                        if (!response.ok) {
+                            throw { 
+                                status: response.status,
+                                data: data,
+                                message: data.message || 'API request failed'
+                            };
+                        }
+                        
+                        return data;
+                    } catch (error) {
+                        console.error('API Request Error:', error);
+                        throw error;
+                    }
+                },
+                
+                // Shorthand methods for common HTTP verbs
+                get: function(endpoint, options = {}) {
+                    return this.fetch(endpoint, { method: 'GET', ...options });
+                },
+                
+                post: function(endpoint, data = {}, options = {}) {
+                    return this.fetch(endpoint, { 
+                        method: 'POST',
+                        body: data,
+                        ...options
+                    });
+                },
+                
+                put: function(endpoint, data = {}, options = {}) {
+                    return this.fetch(endpoint, { 
+                        method: 'PUT',
+                        body: data,
+                        ...options
+                    });
+                },
+                
+                delete: function(endpoint, options = {}) {
+                    return this.fetch(endpoint, { method: 'DELETE', ...options });
+                }
+            };
+            
+            // Log API information in development
+            @if(app()->environment('local', 'staging'))
+            console.group('🔑 API Helpers Available');
+            console.log('CSRF Token:', window.auth.api.csrfToken);
+            console.log('API Base URL:', window.auth.api.baseUrl);
+            console.log('Usage: window.auth.api.get/post/put/delete()');
+            console.groupEnd();
+            @endif
+        </script>
+
         <!-- Scripts -->
         @routes
         @viteReactRefresh

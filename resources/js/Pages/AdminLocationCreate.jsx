@@ -32,13 +32,13 @@ export default function AdminPlansView() {
                     Admin / Locations / Create
                 </h2>
             }
-            sidebartab="plans"
+            sidebartab="newlocation"
         >
-            <Head title="Admin Plans"/>
+            <Head title="Admin Create new Location"/>
 
             <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-black">
                 <div className="text-gray-900 dark:text-gray-100">
-                    <h3 className="text-lg font-medium">Edit servers to Go around the world 🌏</h3>
+                    <h3 className="text-lg font-medium">Create a new location.</h3>
                 </div>
             </div>
 

@@ -6,19 +6,28 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+    public function up()
     {
-        //
+        Schema::table('plans', function (Blueprint $table) {
+            // Add missing columns
+            if (!Schema::hasColumn('plans', 'maxUsers')) {
+                $table->integer('maxUsers')->default(1)->after('planType');
+            }
+            if (!Schema::hasColumn('plans', 'duration')) {
+                $table->integer('duration')->nullable()->after('maxUsers');
+            }
+        });
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
-        //
+        Schema::table('plans', function (Blueprint $table) {
+            if (Schema::hasColumn('plans', 'maxUsers')) {
+                $table->dropColumn('maxUsers');
+            }
+            if (Schema::hasColumn('plans', 'duration')) {
+                $table->dropColumn('duration');
+            }
+        });
     }
 };

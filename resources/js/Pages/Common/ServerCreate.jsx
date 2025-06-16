@@ -18,6 +18,7 @@ import {
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Info } from 'lucide-react';
+import http from '@/lib/http';
 
 export default function ServerCreate() {
   const { locations, eggs, auth } = usePage().props;
@@ -204,10 +205,9 @@ export default function ServerCreate() {
   // Check if demo mode is enabled in the environment
   useEffect(() => {
     // We'll use an API endpoint to check if DEMO=true in the environment
-    fetch('/api/check-demo-enabled')
-      .then(response => response.json())
-      .then(data => {
-        setShowDemoOption(data.enabled);
+    http.get('/check-demo-enabled')
+      .then(response => {
+        setShowDemoOption(response.enabled);
       })
       .catch(error => {
         console.error('Failed to check if demo is enabled:', error);

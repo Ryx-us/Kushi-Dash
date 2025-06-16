@@ -18,7 +18,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name', 'email', 'password', 'discord_id', 'pterodactyl_id', 'pterodactyl_email',
-        'limits', 'resources', 'rank', 'coins', 'purchases_plans'
+        'limits', 'resources', 'rank', 'coins', 'purchases_plans',  'last_ip', 'ip_history', 'banned_ip'
     ];
 
     protected $hidden = [
@@ -31,6 +31,8 @@ class User extends Authenticatable
         'limits' => 'array',
         'resources' => 'array',
         'purchases_plans' => 'array',
+        
+        'banned_ip' => 'boolean',
     ];
 
     /**

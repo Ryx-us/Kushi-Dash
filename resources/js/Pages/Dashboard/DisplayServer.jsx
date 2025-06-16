@@ -28,6 +28,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import http from '@/lib/http'
 
 export default function DisplayServer({ className = '' }) {
     const user = usePage().props.auth.user
@@ -70,7 +71,7 @@ export default function DisplayServer({ className = '' }) {
 
     const fetchEggData = async (eggId) => {
         try {
-            const response = await fetch(`/client/api/pterodactyl/egg/${eggId}`)
+            const response = await fetch(`/api/client/pterodactyl/egg/${eggId}`)
             const data = await response.json()
             setEggData(prev => ({ ...prev, [eggId]: data }))
         } catch (error) {
@@ -82,13 +83,11 @@ export default function DisplayServer({ className = '' }) {
         setIsLoading(true);
         setIsRefreshing(true);
 
-        axios.get(`/pterodactyl/servers/${user.pterodactyl_id}`, {
-            headers: {
-                'Accept': 'application/json'
-            }
+        http.get(`/pterodactyl/servers/${user.pterodactyl_id}`, {
+            
         })
         .then(response => {
-            const data = response.data;
+            const data = response
             let serverData = [];
             
             if (data.props && data.props.flash && data.props.flash.res) {
@@ -106,7 +105,7 @@ export default function DisplayServer({ className = '' }) {
                     }
                 });
             }
-        })
+      })
         .catch(error => {
             console.error("Error fetching servers:", error);
             setServers([]);

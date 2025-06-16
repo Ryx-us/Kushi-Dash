@@ -3,6 +3,7 @@ import { Head, usePage } from '@inertiajs/react';
 import { Cog, Crown, User } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import axios from 'axios';
+import http from '@/lib/http';
 
 // Lazy load components
 const AuthenticatedLayout = lazy(() => import("@/Layouts/AuthenticatedLayout.jsx"));
@@ -41,8 +42,8 @@ export default function AdminDashboard() {
     useEffect(() => {
         const fetchActiveProjects = async () => {
             try {
-                const response = await axios.get(`/pterodactyl/servers/${pterodactylId}`);
-                setActiveProjects(response.data.servers.length);
+                const response = await http.get(`/pterodactyl/servers/${pterodactylId}`);
+                setActiveProjects(response.servers.length);
             } catch (error) {
                 console.error('Error fetching active projects:', error);
             }

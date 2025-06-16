@@ -419,7 +419,7 @@ function AppSidebar({ auth, vmsConfig, sidebartab }) {
                 </SidebarMenuItem>
               )}
 
-              {/* Virtual Machines */}
+            {/** * 
               {vmsConfig.enabled && (
                 <SidebarMenuItem>
                   {canAccessVMs() ? (
@@ -447,7 +447,7 @@ function AppSidebar({ auth, vmsConfig, sidebartab }) {
                     </SidebarMenuButton>
                   )}
                 </SidebarMenuItem>
-              )}
+              )} **/}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

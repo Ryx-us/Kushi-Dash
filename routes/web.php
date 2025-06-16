@@ -139,12 +139,7 @@ Route::get('checkout', function (Request $request) {
 /**
  * Public API routes
  */
-Route::get('/client/api/egg/{id}', [PterodactylEggController::class, 'show'])->name('admin.eggs.show');
-Route::get('/client/api/pterodactyl/egg/{id}', [PterodactylEggController::class, 'serversshow'])->name('admin.eggs.serversshow');
-Route::get('/client/api/plans', [PlanController::class, 'apiIndex'])->name('plans.api.Index');
-Route::get('api/check-demo-enabled', function () {
-    return response()->json(['enabled' => env('DEMO', false)]);
-});
+
 
 /**
  * Payment webhook routes
