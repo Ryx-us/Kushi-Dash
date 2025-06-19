@@ -4,10 +4,11 @@ import React, { Suspense, lazy } from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import PterodactylAccountContainer from '../Profile/Partials/PterodactylAccountContainer';
 
 // Lazy load components
 const AuthenticatedLayout = lazy(() => import('@/Layouts/AuthenticatedLayout'));
-const PterodactylContainer = lazy(() => import("@/Pages/Panel/Components/PterodactylContainer.jsx"));
+//const PterodactylContainer = lazy(() => import("@/Pages/Panel/Components/PterodactylContainer.jsx"));
 const PasswordResetFormPterodactyl = lazy(() => import("@/Pages/Panel/Components/PasswordReset.jsx"));
 
 // Loading fallbacks
@@ -34,30 +35,46 @@ export default function Panel() {
             >
                 <Head title="Panel"/>
 
-                <div className="py-12">
-                    <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                       
-                            <PterodactylContainer className="max-w-xl"/>
-                        
-                        
-                        
-                            <PasswordResetFormPterodactyl className="max-w-xl"/>
-                        
-                        
-                        <Card className="max-w-xl">
-                            <CardHeader> Pterodactyl Panel </CardHeader>
-                            <CardContent>
-                                <Button 
-                                    onClick={() => window.location.href = props.pterodactyl_URL} 
-                                    variant="primary" 
-                                    className="bg-green-900"
-                                >
-                                    Open Panel 
-                                </Button>
-                            </CardContent>
-                        </Card>
+                <div className="py-1">
+                    <div className="relative h-[100px] w-full mb-6 outline-gray-400 outline rounded-lg ">
+                        <img
+                            src="https://i.pinimg.com/originals/1b/1b/b5/1b1bb5e2107b007bf4eb7b9eefb072ed.jpg"
+                            alt="Server Deployments"
+                            className="absolute inset-0 w-full h-full object-cover rounded-lg"
+                            loading="lazy"
+                        />
+                        <div className="absolute inset-0 flex items-center p-5">
+                            <h1 className="text-4xl font-bold text-gray-200">
+                                Pterodactyl Panel Settings 
+                            </h1>
+                        </div>
                     </div>
-                </div>
+
+                    
+                       
+                        <div className='space-y-4'>
+                            <PterodactylAccountContainer className="max-w-xl py-4 "/>
+                            
+                            
+                            
+                                <PasswordResetFormPterodactyl className="max-w-xl py-4 mt-5"/>
+                            
+                            
+                            <Card className="max-w-xl py-4">
+                                <CardHeader> Pterodactyl Panel </CardHeader>
+                                <CardContent>
+                                    <Button 
+                                        onClick={() => window.location.href = props.pterodactyl_URL} 
+                                        variant="primary" 
+                                        className="bg-green-900"
+                                    >
+                                        Open Panel 
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                
             </AuthenticatedLayout>
         </Suspense>
     );

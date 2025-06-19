@@ -25,13 +25,13 @@ export default function Edit({ mustVerifyEmail, status }) {
                         <UpdateProfileInformationForm
                             mustVerifyEmail={mustVerifyEmail}
                             status={status}
-                            className="max-w-xl"
+                            className="max-w-xl "
                         />
 
 
 
                     {/*<PasswordResetFormPterodactyl/>*/}
-                    <PterodactylAccountContainer className="max-w-xl" />
+                    <PterodactylAccountContainer className="max-w-xl mt-4" />
 
 
                     <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">

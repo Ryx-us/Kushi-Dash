@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button"
 import TextInput from '@/components/TextInput';
 import { Transition } from '@headlessui/react';
 import { Link, useForm, usePage } from '@inertiajs/react';
+import { Badge } from '@/components/ui/badge';
+
+/**
+ * 
+ * This is teh p
+ */
+
 
 export default function PterodactylAccountContainer({
                                                         mustVerifyEmail,
@@ -60,39 +67,13 @@ export default function PterodactylAccountContainer({
                     />
                 </div>
 
-                {mustVerifyEmail && user.email_verified_at === null && (
-                    <div>
-                        <p className="mt-2 text-sm text-gray-800 dark:text-gray-200">
-                            Your email address is unverified.
-                            <Link
-                                href={route('verification.send')}
-                                method="post"
-                                as="button"
-                                className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-gray-400 dark:hover:text-gray-100 dark:focus:ring-offset-gray-800"
-                            >
-                                Click here to re-send the verification email.
-                            </Link>
-                        </p>
-                        {status === 'verification-link-sent' && (
-                            <div className="mt-2 text-sm font-medium text-green-600 dark:text-green-400">
-                                A new verification link has been sent to your email address.
-                            </div>
-                        )}
-                    </div>
-                )}
+                
                 <div className="flex items-center gap-4">
-                    <Button disabled={processing} variant="destructive" className="bg-red-900">Read only</Button>
-                    <Transition
-                        show={recentlySuccessful}
-                        enter="transition ease-in-out"
-                        enterFrom="opacity-0"
-                        leave="transition ease-in-out"
-                        leaveTo="opacity-0"
-                    >
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Why click on this?
-                        </p>
-                    </Transition>
+
+                    <Badge className={`bg-red-600 text-white dark:bg-green-700`}>
+                        These are your Pterodactyl account details.
+                    </Badge>
+                    
                 </div>
                 
             </form>

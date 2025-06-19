@@ -317,6 +317,8 @@ export default function UsersView() {
                 </div>
             )}
 
+            
+
             {/* Pagination Controls */}
             {filteredUsers.length > 0 && (
                 <div className="flex items-center justify-between bg-white dark:bg-black p-4 rounded-lg shadow">

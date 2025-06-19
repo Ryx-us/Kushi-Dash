@@ -20,7 +20,7 @@ const EmptyState = () => {
             </div>
             <div>
                 <h1 className="font-semibold text-2xl text-center ">😿 Nothing Found</h1>
-                <p className="text-gray-500">We didn't manage to find anything related to this 🥲</p>
+                <p className="text-gray-500 pb-6 px-4 ">We didn't manage to find anything related to this 🥲</p>
             </div>
             </Card>
         </div>

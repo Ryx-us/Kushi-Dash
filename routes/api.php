@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\PterodactylController;
 use App\Http\Controllers\Pterodactyl\ServerController;
+use App\Http\Controllers\PlanController;
 
 /*
 |--------------------------------------------------------------------------
@@ -72,6 +73,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         
     Route::get('/client/plans', [PlanController::class, 'apiIndex'])
         ->name('plans.api.Index');
+        
     
     // Keep the demo check here as well for authenticated users
     Route::get('/check-demo-enabled', function () {

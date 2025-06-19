@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import EmptyState from './NotFound';
+import http from '@/lib/http';
 
 const Products = ({ plansINTERSIA = [] }) => {
     const [plans, setPlans] = useState([]);
@@ -21,8 +22,9 @@ const Products = ({ plansINTERSIA = [] }) => {
     useEffect(() => {
         const fetchPlans = async () => {
             try {
-                const response = await fetch('/api/clientplans');
-                const data = await response.json();
+                const response = await http.get('/client/plans');
+                const data = await response
+                console.log(response)
                 setPlans(data.plans || []);
             } catch (error) {
                 console.error('Error fetching plans:', error);
