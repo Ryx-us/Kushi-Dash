@@ -354,6 +354,93 @@ public function update(Request $request, PterodactylService $pterodactylService,
             return back()->with('status', 'Error: Your account is not properly linked');
         }
 
+        // --- REFRESH USER RESOURCES ---
+        $totalResources = [
+            'memory' => 0, 
+            'swap' => 0, 
+            'disk' => 0, 
+            'io' => 0, 
+            'cpu' => 0,
+            'databases' => 0, 
+            'allocations' => 0, 
+            'backups' => 0, 
+            'servers' => 0
+        ];
+        $demoServersSkipped = 0;
+        $servers = $pterodactylService->getUserServers($user->pterodactyl_id);
+
+        if (!empty($servers) && is_array($servers)) {
+            foreach ($servers as $server) {
+                if (!isset($server['attributes'])) continue;
+
+                if (isset($server['attributes']['name']) && 
+                    (stripos($server['attributes']['name'], 'demo') !== false || 
+                     stripos($server['attributes']['description'] ?? '', 'demo') !== false)) {
+                    $demoServersSkipped++;
+                    continue;
+                }
+
+                if (isset($server['attributes']['limits']) && 
+                    (is_string($server['attributes']['limits']['memory'] ?? null) && 
+                     strpos($server['attributes']['limits']['memory'] ?? '', 'Over 9 levels deep') !== false)) {
+                    try {
+                        $serverIdRefresh = $server['attributes']['id'] ?? null;
+                        if ($serverIdRefresh) {
+                            $serverDetailsRefresh = $pterodactylService->getServerById($serverIdRefresh);
+                            if (isset($serverDetailsRefresh['attributes']['name']) &&
+                                (stripos($serverDetailsRefresh['attributes']['name'], 'demo') !== false || 
+                                 stripos($serverDetailsRefresh['attributes']['description'] ?? '', 'demo') !== false)) {
+                                $demoServersSkipped++;
+                                continue;
+                            }
+                            if ($serverDetailsRefresh && isset($serverDetailsRefresh['attributes']['limits'])) {
+                                $limits = $serverDetailsRefresh['attributes']['limits'];
+                                $featureLimits = $serverDetailsRefresh['attributes']['feature_limits'] ?? [];
+                                $totalResources['memory'] += is_numeric($limits['memory'] ?? null) ? (int)$limits['memory'] : 0;
+                                $totalResources['swap'] += is_numeric($limits['swap'] ?? null) ? (int)$limits['swap'] : 0;
+                                $totalResources['disk'] += is_numeric($limits['disk'] ?? null) ? (int)$limits['disk'] : 0;
+                                $totalResources['io'] += is_numeric($limits['io'] ?? null) ? (int)$limits['io'] : 0;
+                                $totalResources['cpu'] += is_numeric($limits['cpu'] ?? null) ? (int)$limits['cpu'] : 0;
+                                $totalResources['databases'] += is_numeric($featureLimits['databases'] ?? null) ? (int)$featureLimits['databases'] : 0;
+                                $totalResources['allocations'] += is_numeric($featureLimits['allocations'] ?? null) ? (int)$featureLimits['allocations'] : 0;
+                                $totalResources['backups'] += is_numeric($featureLimits['backups'] ?? null) ? (int)$featureLimits['backups'] : 0;
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        $totalResources['memory'] += 1024;
+                        $totalResources['disk'] += 10000;
+                        $totalResources['cpu'] += 100;
+                        $totalResources['allocations'] += 1;
+                    }
+                    continue;
+                }
+
+                if (isset($server['attributes']['limits'])) {
+                    $limits = $server['attributes']['limits'];
+                    $totalResources['memory'] += is_numeric($limits['memory'] ?? null) ? (int)$limits['memory'] : 0;
+                    $totalResources['swap'] += is_numeric($limits['swap'] ?? null) ? (int)$limits['swap'] : 0;
+                    $totalResources['disk'] += is_numeric($limits['disk'] ?? null) ? (int)$limits['disk'] : 0;
+                    $totalResources['io'] += is_numeric($limits['io'] ?? null) ? (int)$limits['io'] : 0;
+                    $totalResources['cpu'] += is_numeric($limits['cpu'] ?? null) ? (int)$limits['cpu'] : 0;
+                }
+
+                if (isset($server['attributes']['feature_limits'])) {
+                    $featureLimits = $server['attributes']['feature_limits'];
+                    $totalResources['databases'] += is_numeric($featureLimits['databases'] ?? null) ? (int)$featureLimits['databases'] : 0;
+                    $totalResources['allocations'] += is_numeric($featureLimits['allocations'] ?? null) ? (int)$featureLimits['allocations'] : 0;
+                    $totalResources['backups'] += is_numeric($featureLimits['backups'] ?? null) ? (int)$featureLimits['backups'] : 0;
+                }
+            }
+            $totalResources['servers'] = count($servers) - $demoServersSkipped;
+        } else {
+            $totalResources['servers'] = 0;
+        }
+        // Save refreshed resources
+        $user->resources = $totalResources;
+        $user->save();
+
+        // --- END REFRESH ---
+
         // Fetch current server details
         $serverDetails = $pterodactylService->getServerDetails($serverId);
         if (!$serverDetails) {
@@ -368,16 +455,16 @@ public function update(Request $request, PterodactylService $pterodactylService,
         $newAllocations = $request->input('allocations', $serverDetails['attributes']['feature_limits']['allocations']);
         $newBackups = $request->input('backups', $serverDetails['attributes']['feature_limits']['backups']);
 
-        // Check if the new resource usage surpasses the user's limits
+        // Check if the new resource usage surpasses the user's refreshed limits
         if (
-            $newMemory > $user->limits['memory'] ||
-            $newCpu > $user->limits['cpu'] ||
-            $newDisk > $user->limits['disk'] ||
-            $newDatabases > $user->limits['databases'] ||
-            $newAllocations > $user->limits['allocations'] ||
-            $newBackups > $user->limits['backups']
+            $newMemory > $user->resources['memory'] ||
+            $newCpu > $user->resources['cpu'] ||
+            $newDisk > $user->resources['disk'] ||
+            $newDatabases > $user->resources['databases'] ||
+            $newAllocations > $user->resources['allocations'] ||
+            $newBackups > $user->resources['backups']
         ) {
-            return back()->with('status', 'Error: Surpasses User resources');
+            return back()->with('status', 'Error: Surpasses User resources (after refresh)');
         }
 
         // Prepare the build payload
@@ -407,6 +494,7 @@ public function update(Request $request, PterodactylService $pterodactylService,
         return back()->with('status', 'Error: Unable to update server at this time. Please try again later.');
     }
 }
+
 
 
     //sister leviing
