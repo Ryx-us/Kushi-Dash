@@ -351,7 +351,11 @@ public function update(Request $request, PterodactylService $pterodactylService,
         // Get user data with rank check
         $user = User::where('discord_id', $request->user()->discord_id)->first();
         if (!$user->pterodactyl_id) {
-            return back()->with('status', 'Error: Your account is not properly linked');
+            Log::warning('User account not properly linked', ['user_id' => $user->id ?? null]);
+            return response()->json([
+                'status' => 'Error: Your account is not properly linked',
+                'resources_left' => null
+            ], 400);
         }
 
         // --- REFRESH USER RESOURCES ---
@@ -439,12 +443,22 @@ public function update(Request $request, PterodactylService $pterodactylService,
         $user->resources = $totalResources;
         $user->save();
 
+        // Log refreshed resources
+        Log::info('User resources refreshed', [
+            'user_id' => $user->id,
+            'resources_left' => $user->resources
+        ]);
+
         // --- END REFRESH ---
 
         // Fetch current server details
         $serverDetails = $pterodactylService->getServerDetails($serverId);
         if (!$serverDetails) {
-            return back()->with('status', 'Error: Unable to fetch server details');
+            Log::warning('Unable to fetch server details', ['server_id' => $serverId]);
+            return response()->json([
+                'status' => 'Error: Unable to fetch server details',
+                'resources_left' => $user->resources
+            ], 400);
         }
 
         // Calculate the new resource usage
@@ -464,7 +478,22 @@ public function update(Request $request, PterodactylService $pterodactylService,
             $newAllocations > $user->resources['allocations'] ||
             $newBackups > $user->resources['backups']
         ) {
-            return back()->with('status', 'Error: Surpasses User resources (after refresh)');
+            Log::warning('Server update denied: Surpasses user resources', [
+                'user_id' => $user->id,
+                'requested' => [
+                    'memory' => $newMemory,
+                    'cpu' => $newCpu,
+                    'disk' => $newDisk,
+                    'databases' => $newDatabases,
+                    'allocations' => $newAllocations,
+                    'backups' => $newBackups,
+                ],
+                'resources_left' => $user->resources
+            ]);
+            return response()->json([
+                'status' => 'Error: Surpasses User resources (after refresh)',
+                'resources_left' => $user->resources
+            ], 403);
         }
 
         // Prepare the build payload
@@ -486,12 +515,22 @@ public function update(Request $request, PterodactylService $pterodactylService,
         // Update the server build
         $updatedServer = $pterodactylService->updateServerBuild($serverId, $build);
 
-        Log::info('Server updated successfully:', $updatedServer);
+        Log::info('Server updated successfully:', [
+            'server_id' => $serverId,
+            'user_id' => $user->id,
+            'resources_left' => $user->resources
+        ]);
 
-        return back()->with('status', 'Success: Your server has been successfully updated');
+        return response()->json([
+            'status' => 'Success: Your server has been successfully updated',
+            'resources_left' => $user->resources
+        ]);
     } catch (\Exception $e) {
         Log::error('Server update failed: ' . $e->getMessage());
-        return back()->with('status', 'Error: Unable to update server at this time. Please try again later.');
+        return response()->json([
+            'status' => 'Error: Unable to update server at this time. Please try again later.',
+            'resources_left' => $user->resources ?? null
+        ], 500);
     }
 }
 
