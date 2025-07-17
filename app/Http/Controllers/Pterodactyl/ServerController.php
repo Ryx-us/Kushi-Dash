@@ -345,13 +345,14 @@ public function store(Request $request, PterodactylService $pterodactylService)
 public function update(Request $request, PterodactylService $pterodactylService, $serverId)
 {
     try {
-        // Get user data
+        // Get user and limits
         $user = User::where('discord_id', $request->user()->discord_id)->first();
         if (!$user || !$user->pterodactyl_id) {
             return back()->with('status', 'Error: Your account is not properly linked');
         }
+        $limits = $user->limits;
 
-        // --- REFRESH USER RESOURCES (synchronously, not as a job) ---
+        // --- REFRESH USER RESOURCES (full logic) ---
         $totalResources = [
             'memory' => 0, 
             'swap' => 0, 
@@ -391,13 +392,13 @@ public function update(Request $request, PterodactylService $pterodactylService,
                                 continue;
                             }
                             if ($serverDetailsRefresh && isset($serverDetailsRefresh['attributes']['limits'])) {
-                                $limits = $serverDetailsRefresh['attributes']['limits'];
+                                $limitsArr = $serverDetailsRefresh['attributes']['limits'];
                                 $featureLimits = $serverDetailsRefresh['attributes']['feature_limits'] ?? [];
-                                $totalResources['memory'] += is_numeric($limits['memory'] ?? null) ? (int)$limits['memory'] : 0;
-                                $totalResources['swap'] += is_numeric($limits['swap'] ?? null) ? (int)$limits['swap'] : 0;
-                                $totalResources['disk'] += is_numeric($limits['disk'] ?? null) ? (int)$limits['disk'] : 0;
-                                $totalResources['io'] += is_numeric($limits['io'] ?? null) ? (int)$limits['io'] : 0;
-                                $totalResources['cpu'] += is_numeric($limits['cpu'] ?? null) ? (int)$limits['cpu'] : 0;
+                                $totalResources['memory'] += is_numeric($limitsArr['memory'] ?? null) ? (int)$limitsArr['memory'] : 0;
+                                $totalResources['swap'] += is_numeric($limitsArr['swap'] ?? null) ? (int)$limitsArr['swap'] : 0;
+                                $totalResources['disk'] += is_numeric($limitsArr['disk'] ?? null) ? (int)$limitsArr['disk'] : 0;
+                                $totalResources['io'] += is_numeric($limitsArr['io'] ?? null) ? (int)$limitsArr['io'] : 0;
+                                $totalResources['cpu'] += is_numeric($limitsArr['cpu'] ?? null) ? (int)$limitsArr['cpu'] : 0;
                                 $totalResources['databases'] += is_numeric($featureLimits['databases'] ?? null) ? (int)$featureLimits['databases'] : 0;
                                 $totalResources['allocations'] += is_numeric($featureLimits['allocations'] ?? null) ? (int)$featureLimits['allocations'] : 0;
                                 $totalResources['backups'] += is_numeric($featureLimits['backups'] ?? null) ? (int)$featureLimits['backups'] : 0;
@@ -413,12 +414,12 @@ public function update(Request $request, PterodactylService $pterodactylService,
                 }
 
                 if (isset($server['attributes']['limits'])) {
-                    $limits = $server['attributes']['limits'];
-                    $totalResources['memory'] += is_numeric($limits['memory'] ?? null) ? (int)$limits['memory'] : 0;
-                    $totalResources['swap'] += is_numeric($limits['swap'] ?? null) ? (int)$limits['swap'] : 0;
-                    $totalResources['disk'] += is_numeric($limits['disk'] ?? null) ? (int)$limits['disk'] : 0;
-                    $totalResources['io'] += is_numeric($limits['io'] ?? null) ? (int)$limits['io'] : 0;
-                    $totalResources['cpu'] += is_numeric($limits['cpu'] ?? null) ? (int)$limits['cpu'] : 0;
+                    $limitsArr = $server['attributes']['limits'];
+                    $totalResources['memory'] += is_numeric($limitsArr['memory'] ?? null) ? (int)$limitsArr['memory'] : 0;
+                    $totalResources['swap'] += is_numeric($limitsArr['swap'] ?? null) ? (int)$limitsArr['swap'] : 0;
+                    $totalResources['disk'] += is_numeric($limitsArr['disk'] ?? null) ? (int)$limitsArr['disk'] : 0;
+                    $totalResources['io'] += is_numeric($limitsArr['io'] ?? null) ? (int)$limitsArr['io'] : 0;
+                    $totalResources['cpu'] += is_numeric($limitsArr['cpu'] ?? null) ? (int)$limitsArr['cpu'] : 0;
                 }
 
                 if (isset($server['attributes']['feature_limits'])) {
