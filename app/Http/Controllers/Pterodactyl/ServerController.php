@@ -468,20 +468,27 @@ public function update(Request $request, PterodactylService $pterodactylService,
             'backups' => $request->input('backups', $current['backups']),
         ];
 
-        // Calculate the difference (positive means increase, negative means decrease)
-        $diff = [
-            'memory' => $requested['memory'] - $current['memory'],
-            'cpu' => $requested['cpu'] - $current['cpu'],
-            'disk' => $requested['disk'] - $current['disk'],
-            'databases' => $requested['databases'] - $current['databases'],
-            'allocations' => $requested['allocations'] - $current['allocations'],
-            'backups' => $requested['backups'] - $current['backups'],
+        // Aggregate usage for all servers except the one being updated
+        $otherServersUsage = [
+            'memory' => 0, 'cpu' => 0, 'disk' => 0,
+            'databases' => 0, 'allocations' => 0, 'backups' => 0
         ];
+        foreach ($servers as $server) {
+            if ($server['attributes']['id'] == $serverId) continue; // skip the one being updated
+            $attr = $server['attributes'];
+            $otherServersUsage['memory'] += $attr['limits']['memory'] ?? 0;
+            $otherServersUsage['cpu'] += $attr['limits']['cpu'] ?? 0;
+            $otherServersUsage['disk'] += $attr['limits']['disk'] ?? 0;
+            $otherServersUsage['databases'] += $attr['feature_limits']['databases'] ?? 0;
+            $otherServersUsage['allocations'] += $attr['feature_limits']['allocations'] ?? 0;
+            $otherServersUsage['backups'] += $attr['feature_limits']['backups'] ?? 0;
+        }
 
-        // Check if user has enough resources for the increase
-        foreach ($diff as $key => $value) {
-            if ($value > 0 && $userResources[$key] < $value) {
-                return back()->with('status', "Error: Not enough {$key} resources. You need {$value}, but only have {$userResources[$key]} left.");
+        // Check against limits
+        foreach ($limits as $key => $maxAllowed) {
+            $newTotal = $otherServersUsage[$key] + $requested[$key];
+            if ($newTotal > $maxAllowed) {
+                return back()->with('status', "Error: Not enough {$key} allowed. Limit is {$maxAllowed}, you are requesting {$newTotal}.");
             }
         }
 
@@ -503,11 +510,9 @@ public function update(Request $request, PterodactylService $pterodactylService,
 
         $updatedServer = $pterodactylService->updateServerBuild($serverId, $build);
 
-        // Subtract the used resources from the user's available resources
-        foreach ($diff as $key => $value) {
-            if ($value > 0) {
-                $userResources[$key] -= $value;
-            }
+        // Update user's resources (add the difference)
+        foreach ($requested as $key => $value) {
+            $userResources[$key] = $otherServersUsage[$key] + $value;
         }
         $user->resources = $userResources;
         $user->save();
