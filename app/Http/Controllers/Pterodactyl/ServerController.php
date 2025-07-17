@@ -348,9 +348,11 @@ public function update(Request $request, PterodactylService $pterodactylService,
         // Get user and limits
         $user = User::where('discord_id', $request->user()->discord_id)->first();
         if (!$user || !$user->pterodactyl_id) {
+            \Log::warning('Account not linked or user not found', ['discord_id' => $request->user()->discord_id ?? null]);
             return back()->with('status', 'Error: Your account is not properly linked');
         }
         $limits = $user->limits;
+        \Log::info('User found for update', ['user_id' => $user->id, 'limits' => $limits]);
 
         // --- REFRESH USER RESOURCES (full logic) ---
         $totalResources = [
@@ -405,6 +407,7 @@ public function update(Request $request, PterodactylService $pterodactylService,
                             }
                         }
                     } catch (\Exception $e) {
+                        \Log::error('Failed to get server details for normalization issue', ['error' => $e->getMessage()]);
                         $totalResources['memory'] += 1024;
                         $totalResources['disk'] += 10000;
                         $totalResources['cpu'] += 100;
@@ -436,6 +439,7 @@ public function update(Request $request, PterodactylService $pterodactylService,
         // Save refreshed resources
         $user->resources = $totalResources;
         $user->save();
+        \Log::info('User resources refreshed', ['user_id' => $user->id, 'resources' => $user->resources]);
 
         // --- END REFRESH ---
 
@@ -445,6 +449,7 @@ public function update(Request $request, PterodactylService $pterodactylService,
         // Fetch current server details
         $serverDetails = $pterodactylService->getServerDetails($serverId);
         if (!$serverDetails) {
+            \Log::error('Unable to fetch server details', ['server_id' => $serverId]);
             return back()->with('status', 'Error: Unable to fetch server details');
         }
 
@@ -483,11 +488,18 @@ public function update(Request $request, PterodactylService $pterodactylService,
             $otherServersUsage['allocations'] += $attr['feature_limits']['allocations'] ?? 0;
             $otherServersUsage['backups'] += $attr['feature_limits']['backups'] ?? 0;
         }
+        \Log::info('Other servers usage calculated', ['user_id' => $user->id, 'other_servers_usage' => $otherServersUsage, 'requested' => $requested]);
 
         // Check against limits
         foreach ($limits as $key => $maxAllowed) {
             $newTotal = $otherServersUsage[$key] + $requested[$key];
             if ($newTotal > $maxAllowed) {
+                \Log::warning('Resource limit exceeded', [
+                    'user_id' => $user->id,
+                    'resource' => $key,
+                    'limit' => $maxAllowed,
+                    'requested_total' => $newTotal
+                ]);
                 return back()->with('status', "Error: Not enough {$key} allowed. Limit is {$maxAllowed}, you are requesting {$newTotal}.");
             }
         }
@@ -509,6 +521,11 @@ public function update(Request $request, PterodactylService $pterodactylService,
         ];
 
         $updatedServer = $pterodactylService->updateServerBuild($serverId, $build);
+        \Log::info('Server updated successfully', [
+            'server_id' => $serverId,
+            'user_id' => $user->id,
+            'build' => $build
+        ]);
 
         // Update user's resources (add the difference)
         foreach ($requested as $key => $value) {
@@ -516,9 +533,11 @@ public function update(Request $request, PterodactylService $pterodactylService,
         }
         $user->resources = $userResources;
         $user->save();
+        \Log::info('User resources updated after server update', ['user_id' => $user->id, 'resources' => $user->resources]);
 
         return back()->with('status', 'Success: Your server has been successfully updated');
     } catch (\Exception $e) {
+        \Log::error('Server update failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
         return back()->with('status', 'Error: Unable to update server at this time. Please try again later.');
     }
 }
