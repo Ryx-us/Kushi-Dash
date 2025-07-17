@@ -345,20 +345,13 @@ public function store(Request $request, PterodactylService $pterodactylService)
 public function update(Request $request, PterodactylService $pterodactylService, $serverId)
 {
     try {
-        // Log the incoming request data
-        Log::info('Incoming server update request:', $request->all());
-
-        // Get user data with rank check
+        // Get user data
         $user = User::where('discord_id', $request->user()->discord_id)->first();
-        if (!$user->pterodactyl_id) {
-            Log::warning('User account not properly linked', ['user_id' => $user->id ?? null]);
-            return response()->json([
-                'status' => 'Error: Your account is not properly linked',
-                'resources_left' => null
-            ], 400);
+        if (!$user || !$user->pterodactyl_id) {
+            return back()->with('status', 'Error: Your account is not properly linked');
         }
 
-        // --- REFRESH USER RESOURCES ---
+        // --- REFRESH USER RESOURCES (synchronously, not as a job) ---
         $totalResources = [
             'memory' => 0, 
             'swap' => 0, 
@@ -443,94 +436,84 @@ public function update(Request $request, PterodactylService $pterodactylService,
         $user->resources = $totalResources;
         $user->save();
 
-        // Log refreshed resources
-        Log::info('User resources refreshed', [
-            'user_id' => $user->id,
-            'resources_left' => $user->resources
-        ]);
-
         // --- END REFRESH ---
+
+        // Get user's up-to-date resources
+        $userResources = $user->resources;
 
         // Fetch current server details
         $serverDetails = $pterodactylService->getServerDetails($serverId);
         if (!$serverDetails) {
-            Log::warning('Unable to fetch server details', ['server_id' => $serverId]);
-            return response()->json([
-                'status' => 'Error: Unable to fetch server details',
-                'resources_left' => $user->resources
-            ], 400);
+            return back()->with('status', 'Error: Unable to fetch server details');
         }
 
-        // Calculate the new resource usage
-        $newMemory = $request->input('memory', $serverDetails['attributes']['limits']['memory']);
-        $newCpu = $request->input('cpu', $serverDetails['attributes']['limits']['cpu']);
-        $newDisk = $request->input('disk', $serverDetails['attributes']['limits']['disk']);
-        $newDatabases = $request->input('databases', $serverDetails['attributes']['feature_limits']['databases']);
-        $newAllocations = $request->input('allocations', $serverDetails['attributes']['feature_limits']['allocations']);
-        $newBackups = $request->input('backups', $serverDetails['attributes']['feature_limits']['backups']);
+        // Current server config
+        $current = [
+            'memory' => $serverDetails['attributes']['limits']['memory'],
+            'cpu' => $serverDetails['attributes']['limits']['cpu'],
+            'disk' => $serverDetails['attributes']['limits']['disk'],
+            'databases' => $serverDetails['attributes']['feature_limits']['databases'],
+            'allocations' => $serverDetails['attributes']['feature_limits']['allocations'],
+            'backups' => $serverDetails['attributes']['feature_limits']['backups'],
+        ];
 
-        // Check if the new resource usage surpasses the user's refreshed limits
-        if (
-            $newMemory > $user->resources['memory'] ||
-            $newCpu > $user->resources['cpu'] ||
-            $newDisk > $user->resources['disk'] ||
-            $newDatabases > $user->resources['databases'] ||
-            $newAllocations > $user->resources['allocations'] ||
-            $newBackups > $user->resources['backups']
-        ) {
-            Log::warning('Server update denied: Surpasses user resources', [
-                'user_id' => $user->id,
-                'requested' => [
-                    'memory' => $newMemory,
-                    'cpu' => $newCpu,
-                    'disk' => $newDisk,
-                    'databases' => $newDatabases,
-                    'allocations' => $newAllocations,
-                    'backups' => $newBackups,
-                ],
-                'resources_left' => $user->resources
-            ]);
-            return response()->json([
-                'status' => 'Error: Surpasses User resources (after refresh)',
-                'resources_left' => $user->resources
-            ], 403);
+        // Requested new config
+        $requested = [
+            'memory' => $request->input('memory', $current['memory']),
+            'cpu' => $request->input('cpu', $current['cpu']),
+            'disk' => $request->input('disk', $current['disk']),
+            'databases' => $request->input('databases', $current['databases']),
+            'allocations' => $request->input('allocations', $current['allocations']),
+            'backups' => $request->input('backups', $current['backups']),
+        ];
+
+        // Calculate the difference (positive means increase, negative means decrease)
+        $diff = [
+            'memory' => $requested['memory'] - $current['memory'],
+            'cpu' => $requested['cpu'] - $current['cpu'],
+            'disk' => $requested['disk'] - $current['disk'],
+            'databases' => $requested['databases'] - $current['databases'],
+            'allocations' => $requested['allocations'] - $current['allocations'],
+            'backups' => $requested['backups'] - $current['backups'],
+        ];
+
+        // Check if user has enough resources for the increase
+        foreach ($diff as $key => $value) {
+            if ($value > 0 && $userResources[$key] < $value) {
+                return back()->with('status', "Error: Not enough {$key} resources. You need {$value}, but only have {$userResources[$key]} left.");
+            }
         }
 
-        // Prepare the build payload
+        // If all checks pass, update the server
         $build = [
-            'allocation' => $serverDetails['attributes']['allocation'], // Keep the same allocation
-            'memory' => $newMemory,
-            'swap' => $serverDetails['attributes']['limits']['swap'], // Keep the same swap
-            'disk' => $newDisk,
-            'io' => $serverDetails['attributes']['limits']['io'], // Keep the same IO
-            'cpu' => $newCpu,
-            'threads' => $serverDetails['attributes']['limits']['threads'], // Keep the same threads
+            'allocation' => $serverDetails['attributes']['allocation'],
+            'memory' => $requested['memory'],
+            'swap' => $serverDetails['attributes']['limits']['swap'],
+            'disk' => $requested['disk'],
+            'io' => $serverDetails['attributes']['limits']['io'],
+            'cpu' => $requested['cpu'],
+            'threads' => $serverDetails['attributes']['limits']['threads'],
             'feature_limits' => [
-                'databases' => $newDatabases,
-                'allocations' => $newAllocations,
-                'backups' => $newBackups,
+                'databases' => $requested['databases'],
+                'allocations' => $requested['allocations'],
+                'backups' => $requested['backups'],
             ]
         ];
 
-        // Update the server build
         $updatedServer = $pterodactylService->updateServerBuild($serverId, $build);
 
-        Log::info('Server updated successfully:', [
-            'server_id' => $serverId,
-            'user_id' => $user->id,
-            'resources_left' => $user->resources
-        ]);
+        // Subtract the used resources from the user's available resources
+        foreach ($diff as $key => $value) {
+            if ($value > 0) {
+                $userResources[$key] -= $value;
+            }
+        }
+        $user->resources = $userResources;
+        $user->save();
 
-        return response()->json([
-            'status' => 'Success: Your server has been successfully updated',
-            'resources_left' => $user->resources
-        ]);
+        return back()->with('status', 'Success: Your server has been successfully updated');
     } catch (\Exception $e) {
-        Log::error('Server update failed: ' . $e->getMessage());
-        return response()->json([
-            'status' => 'Error: Unable to update server at this time. Please try again later.',
-            'resources_left' => $user->resources ?? null
-        ], 500);
+        return back()->with('status', 'Error: Unable to update server at this time. Please try again later.');
     }
 }
 
