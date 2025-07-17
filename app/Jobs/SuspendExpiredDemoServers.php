@@ -52,22 +52,34 @@ class SuspendExpiredDemoServers implements ShouldQueue
                 try {
                     // Suspend the server
                     $pterodactylService->suspendServer($demoServer->server_id);
-                    
+            
                     // Update the demo server record
                     $demoServer->is_suspended = true;
                     $demoServer->save();
-                    
+            
                     Log::info("Demo server suspended", [
                         'server_id' => $demoServer->server_id,
                         'user_id' => $demoServer->user_id,
                         'expired_at' => $demoServer->expires_at
                     ]);
                 } catch (\Exception $e) {
-                    Log::error("Failed to suspend demo server", [
-                        'server_id' => $demoServer->server_id,
-                        'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString()
-                    ]);
+                    // Check for 404 error (already deleted)
+                    if (str_contains($e->getMessage(), '404')) {
+                        Log::info("Demo server already deleted (404)", [
+                            'server_id' => $demoServer->server_id,
+                            'user_id' => $demoServer->user_id,
+                            'expired_at' => $demoServer->expires_at
+                        ]);
+                        // Mark as suspended so we don't try again
+                        $demoServer->is_suspended = true;
+                        $demoServer->save();
+                    } else {
+                        Log::error("Failed to suspend demo server", [
+                            'server_id' => $demoServer->server_id,
+                            'error' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString()
+                        ]);
+                    }
                 }
             }
 
