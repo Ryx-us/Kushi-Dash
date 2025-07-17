@@ -30,6 +30,7 @@ use Inertia\Inertia;
 Route::middleware(['auth'])->get('/user/resources/refresh', [\App\Http\Controllers\UserResourceController::class, 'refreshResources']);
 
 
+
 /**
  * Admin Api routes that are not public later authenticate
  * @see PterodactylApi.php
